@@ -1,902 +1,1089 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PainForge - GLM-5.1 MVP Builder</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PainForge — GLM-5.1 Agentic MVP Builder</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#050505;--bg2:#0a0a0a;--bg3:#111;--fg:#e8e8e8;--fg2:#ccc;--muted:#555;
+--accent:#0d9488;--accent-l:#14b8a6;--accent-dim:rgba(13,148,136,.12);
+--accent-glow:rgba(13,148,136,.35);--accent-sub:rgba(13,148,136,.06);
+--border:#161616;--border2:#1e1e1e;--card:#0b0b0b;--radius:10px;
+--mono:'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',Consolas,monospace;
+--sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',Helvetica,Arial,sans-serif;
+--ease-out-expo:cubic-bezier(.16,1,.3,1);--ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--sans);background:var(--bg);color:var(--fg);overflow-x:hidden;min-height:100vh}
+::selection{background:var(--accent-dim);color:var(--accent-l)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1a1a1a;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#2a2a2a}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+canvas#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+.grid-bg{position:fixed;inset:0;z-index:1;pointer-events:none;
+background-image:linear-gradient(rgba(13,148,136,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(13,148,136,.025) 1px,transparent 1px);
+background-size:80px 80px}
+.scanline{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.4;
+background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.03) 3px,rgba(0,0,0,.03) 4px)}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.5) 100%)}
 
-        /* Top Bar */
-        .topbar {
-            background: #0a0a0a;
-            border-bottom: 1px solid #222;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-        }
+/* ===== ORBITS ===== */
+.orbit{position:fixed;border-radius:50%;pointer-events:none;z-index:2}
+.orbit-a{width:700px;height:700px;top:50%;left:50%;border:1px solid rgba(13,148,136,.035);animation:orb 80s linear infinite}
+.orbit-b{width:1050px;height:1050px;top:50%;left:50%;border:1px solid rgba(13,148,136,.02);animation:orb 120s linear infinite reverse}
+@keyframes orb{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.orbit-dot{position:absolute;width:3px;height:3px;background:var(--accent);border-radius:50%;box-shadow:0 0 6px var(--accent-glow)}
+.orbit-a .orbit-dot:nth-child(1){top:-1px;left:50%;transform:translateX(-50%)}
+.orbit-a .orbit-dot:nth-child(2){bottom:30%;right:-1px}
+.orbit-b .orbit-dot:nth-child(1){top:40%;left:-1px}
+.orbit-b .orbit-dot:nth-child(2){bottom:10%;right:30%}
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #fff;
-            letter-spacing: -0.5px;
-        }
+/* ===== NAV ===== */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(5,5,5,.8);backdrop-filter:blur(24px) saturate(1.2);border-bottom:1px solid var(--border);opacity:0;animation:slideDown .6s .1s var(--ease-out-expo) forwards}
+@keyframes slideDown{to{opacity:1;transform:translateY(0)}}
+nav{transform:translateY(-100%)}
+.brand{display:flex;align-items:center;gap:8px}
+.brand-icon{width:28px;height:28px;border:2px solid var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:var(--accent);position:relative;overflow:hidden}
+.brand-icon::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(13,148,136,.15) 50%,transparent 60%);animation:sheen 3s ease infinite}
+@keyframes sheen{0%,100%{transform:translateX(-100%)}50%{transform:translateX(100%)}}
+.brand-name{font-size:16px;font-weight:800;letter-spacing:-.5px}
+.brand-name em{font-style:normal;color:var(--accent)}
+.nav-meta{display:flex;align-items:center;gap:14px}
+.nav-tagline{font-size:10.5px;color:var(--muted);letter-spacing:.4px}
+.api-wrap{position:relative;display:flex;align-items:center}
+.api-wrap input{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;padding:5px 10px 5px 28px;font-size:10.5px;color:#888;width:170px;outline:none;font-family:var(--mono);transition:all .25s}
+.api-wrap input:focus{border-color:rgba(13,148,136,.4);background:rgba(255,255,255,.04)}
+.api-wrap input::placeholder{color:#333}
+.api-wrap svg{position:absolute;left:8px;width:13px;height:13px;stroke:#444;fill:none;stroke-width:2}
+.flag{width:22px;height:15px;border-radius:2px;overflow:hidden;display:flex;flex-direction:column}
+.flag>div{flex:1}
+.flag-saffron{background:#FF9933}
+.flag-white{background:#fff;position:relative;display:flex;align-items:center;justify-content:center}
+.flag-white::after{content:'';width:6px;height:6px;border-radius:50%;border:1px solid #000080}
+.flag-green{background:#138808}
 
-        .logo span {
-            color: #50c8c8;
-        }
+/* ===== LAYOUT ===== */
+.app{display:flex;padding-top:52px;min-height:100vh;position:relative;z-index:10}
 
-        .subtitle {
-            color: #666;
-            font-size: 0.85rem;
-        }
+/* ===== SIDEBAR ===== */
+.sidebar{width:280px;min-width:280px;border-right:1px solid var(--border);padding:20px 0;overflow-y:auto;max-height:calc(100vh - 52px);position:sticky;top:52px;background:rgba(5,5,5,.5);backdrop-filter:blur(12px);opacity:0;animation:fadeIn .5s .3s ease forwards}
+@keyframes fadeIn{to{opacity:1}}
+.sb-title{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#3a3a3a;padding:0 18px;margin-bottom:14px}
+.pain-item{padding:12px 18px;cursor:pointer;border-left:2px solid transparent;transition:all .2s;display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.55;color:#666;position:relative}
+.pain-item:hover{background:var(--accent-sub);border-left-color:var(--accent);color:var(--fg2)}
+.pain-item.active{background:var(--accent-sub);border-left-color:var(--accent);color:var(--fg)}
+.pain-num{width:20px;height:20px;border-radius:50%;background:rgba(13,148,136,.08);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.sb-footer{margin-top:20px;padding:14px 18px;border-top:1px solid var(--border)}
+.sb-footer p{font-size:10.5px;color:#333;line-height:1.6}
+.sb-footer strong{color:#444}
 
-        /* Main Layout */
-        .container {
-            display: flex;
-            margin-top: 60px;
-            min-height: calc(100vh - 60px);
-        }
+/* ===== MAIN ===== */
+.main{flex:1;display:flex;flex-direction:column;align-items:center;padding:48px 32px 100px;max-width:780px;margin:0 auto;width:100%}
+.hero{opacity:0;animation:fadeUp .7s .4s var(--ease-out-expo) forwards}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+.hero{transform:translateY(20px)}
+.hero h1{font-size:34px;font-weight:800;letter-spacing:-1px;text-align:center;line-height:1.15;margin-bottom:10px}
+.hero h1 em{font-style:normal;color:var(--accent);background:linear-gradient(135deg,var(--accent),#2dd4bf);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero .sub{text-align:center;color:var(--muted);font-size:13.5px;line-height:1.7;max-width:480px;margin:0 auto 32px}
+.hero .sub kbd{display:inline-block;padding:1px 6px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;font-family:var(--mono);font-size:10.5px;color:#888}
 
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: #0a0a0a;
-            border-right: 1px solid #222;
-            padding: 1.5rem;
-            position: fixed;
-            top: 60px;
-            left: 0;
-            bottom: 0;
-            overflow-y: auto;
-        }
+/* ===== TEXTAREA ===== */
+.textarea-area{width:100%;opacity:0;animation:fadeUp .7s .5s var(--ease-out-expo) forwards;transform:translateY(20px)}
+.textarea-area textarea{width:100%;height:160px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;color:var(--fg);font-size:14.5px;line-height:1.75;resize:vertical;outline:none;transition:border-color .3s,box-shadow .3s;font-family:var(--sans)}
+.textarea-area textarea:focus{border-color:rgba(13,148,136,.35);box-shadow:0 0 0 3px rgba(13,148,136,.06)}
+.textarea-area textarea::placeholder{color:#333}
+.char-count{text-align:right;font-size:10.5px;color:#2a2a2a;margin-top:6px;font-family:var(--mono)}
 
-        .sidebar h3 {
-            color: #888;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 1rem;
-        }
+/* ===== BUTTONS ===== */
+.btn-row{display:flex;align-items:center;gap:12px;width:100%;margin-top:18px;opacity:0;animation:fadeUp .7s .6s var(--ease-out-expo) forwards;transform:translateY(20px)}
+.mic-btn{display:flex;align-items:center;gap:8px;padding:13px 22px;background:rgba(13,148,136,.05);border:1px solid rgba(13,148,136,.15);border-radius:var(--radius);color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .3s;position:relative;user-select:none;flex-shrink:0}
+.mic-btn:hover{background:rgba(13,148,136,.1);border-color:rgba(13,148,136,.3)}
+.mic-btn.listening{background:rgba(13,148,136,.15);border-color:var(--accent);box-shadow:0 0 24px rgba(13,148,136,.15)}
+.mic-btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.mic-btn .wave{display:flex;align-items:center;gap:2px;height:16px}
+.mic-btn .wave i{display:block;width:2px;background:var(--accent);border-radius:1px;height:4px;transition:height .1s}
+.mic-btn.listening .wave i{animation:wave .4s ease-in-out infinite alternate}
+.mic-btn .wave i:nth-child(1){animation-delay:0s}
+.mic-btn .wave i:nth-child(2){animation-delay:.1s}
+.mic-btn .wave i:nth-child(3){animation-delay:.2s}
+.mic-btn .wave i:nth-child(4){animation-delay:.1s}
+.mic-btn .wave i:nth-child(5){animation-delay:0s}
+@keyframes wave{from{height:3px}to{height:14px}}
+.mic-btn .pulse{position:absolute;inset:-4px;border:1px solid var(--accent);border-radius:14px;opacity:0;pointer-events:none}
+.mic-btn.listening .pulse{animation:pulseOut 1.5s ease-out infinite}
+@keyframes pulseOut{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.15);opacity:0}}
 
-        .sidebar-item {
-            padding: 0.75rem 1rem;
-            color: #999;
-            cursor: pointer;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
+.forge-btn{flex:1;padding:14px 28px;background:linear-gradient(135deg,var(--accent),#0f766e);border:none;border-radius:var(--radius);color:#fff;font-size:14.5px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px}
+.forge-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(13,148,136,.25)}
+.forge-btn:active{transform:translateY(0);box-shadow:0 2px 8px rgba(13,148,136,.2)}
+.forge-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);transform:translateX(-100%)}
+.forge-btn:hover::after{transform:translateX(100%);transition:transform .7s}
+.forge-btn svg{width:16px;height:16px;fill:currentColor}
+.demo-badge{font-size:9px;background:rgba(255,255,255,.08);padding:3px 8px;border-radius:10px;font-weight:600;letter-spacing:.5px;color:#888;display:none;margin-left:4px}
+.demo-badge.show{display:inline-block}
 
-        .sidebar-item:hover {
-            background: #111;
-            color: #e0e0e0;
-            border-color: #333;
-        }
+/* ===== THINKING OVERLAY ===== */
+.overlay{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(2,2,2,.92);backdrop-filter:blur(40px)}
+.overlay.active{display:flex}
+.overlay-inner{width:90%;max-width:660px}
+.term{background:#080808;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 20px 80px rgba(0,0,0,.5)}
+.term-bar{height:36px;background:#0c0c0c;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:7px}
+.term-dot{width:10px;height:10px;border-radius:50%}
+.term-dot.r{background:#ff5f57}
+.term-dot.y{background:#febc2e}
+.term-dot.g{background:#28c840}
+.term-title{margin-left:auto;font-size:10.5px;color:#444;font-family:var(--mono);letter-spacing:.3px}
+.term-gears{position:absolute;top:6px;left:14px;opacity:.15}
+.term-body{padding:20px 22px;min-height:280px;max-height:50vh;overflow-y:auto;font-family:var(--mono);font-size:12.5px;line-height:1.8;color:#666;position:relative}
+.term-body::-webkit-scrollbar{width:4px}
+.term-body::-webkit-scrollbar-thumb{background:#1a1a1a;border-radius:2px}
+.term-body .line{margin-bottom:2px}
+.term-body .line.accent{color:var(--accent)}
+.term-body .line.dim{color:#333}
+.term-body .line.bold{color:var(--fg2);font-weight:600}
+.term-body .cursor{display:inline-block;width:7px;height:14px;background:var(--accent);vertical-align:middle;margin-left:2px;animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+.term-progress{height:2px;background:rgba(255,255,255,.03)}
+.term-progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#2dd4bf);transition:width .3s}
+.overlay-status{text-align:center;margin-top:20px;font-size:11px;color:#333;letter-spacing:.5px}
+.overlay-status .dot{display:inline-block;width:5px;height:5px;background:var(--accent);border-radius:50%;margin-right:6px;animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
 
-        /* Main Content */
-        .main {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
-            max-width: 900px;
-        }
+/* ===== SVG GEARS ===== */
+.gears-svg{width:100px;height:100px;position:absolute;top:8px;right:16px;opacity:.04;pointer-events:none}
+.gears-svg .gear{fill:none;stroke:var(--accent);stroke-width:1}
+.gears-svg .gear-a{animation:spinCW 8s linear infinite}
+.gears-svg .gear-b{animation:spinCCW 6s linear infinite}
+.gears-svg .gear-c{animation:spinCW 10s linear infinite}
+@keyframes spinCW{to{transform:rotate(360deg)}}
+@keyframes spinCCW{to{transform:rotate(-360deg)}}
 
-        .main h1 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 1.5rem;
-        }
+/* ===== RESULT ===== */
+.result-area{width:100%;display:none;margin-top:24px;opacity:0;transform:translateY(30px);transition:all .7s var(--ease-out-expo)}
+.result-area.active{display:block;opacity:1;transform:translateY(0)}
 
-        /* Input Card */
-        .input-card {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
+/* ===== 3D CARD ===== */
+.card-stage{perspective:1200px;display:flex;justify-content:center;padding:20px 0;min-height:200px}
+.card-3d{width:540px;transform-style:preserve-3d;cursor:grab;user-select:none;position:relative}
+.card-3d:active{cursor:grabbing}
+.card-face{background:linear-gradient(168deg,#0f0f0f 0%,#090909 50%,#0c0c0c 100%);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.02)}
+.card-sheen{position:absolute;inset:0;pointer-events:none;border-radius:14px;z-index:10;transition:background .15s}
+.card-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:14px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+.card-header h3 .icon{color:var(--accent)}
+.card-badge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent);background:var(--accent-dim);padding:3px 10px;border-radius:12px}
+.card-body{padding:18px 22px 22px;max-height:520px;overflow-y:auto}
+.card-body::-webkit-scrollbar{width:3px}
+.card-body::-webkit-scrollbar-thumb{background:#1a1a1a}
+.card-section{margin-bottom:18px}
+.card-section:last-child{margin-bottom:0}
+.card-section h4{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card-section h4::after{content:'';flex:1;height:1px;background:var(--border)}
+.card-section p{color:#888;font-size:12.5px;line-height:1.7}
+.card-section ul{list-style:none}
+.card-section ul li{padding:5px 0 5px 18px;position:relative;color:#777;font-size:12.5px;line-height:1.6}
+.card-section ul li::before{content:'→';position:absolute;left:0;color:var(--accent);font-size:11px}
 
-        .input-card textarea {
-            width: 100%;
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 6px;
-            padding: 1rem;
-            color: #e0e0e0;
-            font-size: 1rem;
-            min-height: 150px;
-            resize: vertical;
-            font-family: inherit;
-        }
+/* Code block */
+.code-wrap{position:relative;background:#060606;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.code-bar{height:28px;background:#0a0a0a;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+.code-lang{font-size:9.5px;color:#444;font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px}
+.code-copy{font-size:9.5px;color:#555;background:transparent;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:var(--mono);transition:all .2s}
+.code-copy:hover{color:var(--accent);border-color:rgba(13,148,136,.3);background:var(--accent-sub)}
+.code-body{padding:14px 16px;font-family:var(--mono);font-size:11px;line-height:1.75;color:#999;overflow-x:auto;max-height:200px;white-space:pre;tab-size:2}
+.code-body .kw{color:var(--accent)}
+.code-body .str{color:#6ee7b7}
+.code-body .cmt{color:#3a3a3a}
+.code-body .fn{color:#93c5fd}
+.code-body .num{color:#fbbf24}
+.code-body .op{color:#888}
 
-        .input-card textarea:focus {
-            outline: none;
-            border-color: #50c8c8;
-        }
+/* Deploy */
+.deploy-box{margin-top:14px;padding:14px 16px;background:var(--accent-sub);border:1px dashed rgba(13,148,136,.2);border-radius:8px;font-size:12px;color:#666;line-height:1.7}
+.deploy-box strong{color:var(--accent);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 
-        .input-card textarea::placeholder {
-            color: #555;
-        }
+/* ===== SLIDER ===== */
+.slider-row{display:flex;align-items:center;gap:14px;margin-top:18px;justify-content:center}
+.slider-row label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+.slider-row input[type=range]{-webkit-appearance:none;width:180px;height:3px;background:var(--border);border-radius:2px;outline:none}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;box-shadow:0 0 10px var(--accent-glow);transition:transform .15s}
+.slider-row input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.slider-val{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:24px;text-align:center}
 
-        /* Buttons */
-        .btn-row {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
+/* ===== ACTIONS ROW ===== */
+.actions-row{display:flex;gap:10px;margin-top:14px;justify-content:center;flex-wrap:wrap}
+.action-btn{padding:8px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:#777;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;font-family:var(--sans)}
+.action-btn:hover{border-color:rgba(13,148,136,.3);color:var(--accent);background:var(--accent-sub)}
+.action-btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
 
-        .mic-btn {
-            background: #111;
-            border: 1px solid #333;
-            color: #888;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            min-width: 120px;
-        }
+/* ===== FOOTER ===== */
+footer{position:relative;z-index:10;text-align:center;padding:32px 20px 40px;font-size:11px;color:#2a2a2a;letter-spacing:.3px;border-top:1px solid var(--border)}
+footer span{color:#444}
 
-        .mic-btn:hover {
-            border-color: #50c8c8;
-            color: #50c8c8;
-        }
+/* ===== TOAST ===== */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);z-index:300;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-size:12px;color:var(--fg2);opacity:0;transition:all .4s var(--ease-out-expo);pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-        .mic-btn.recording {
-            border-color: #ff4444;
-            color: #ff4444;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .forge-btn {
-            flex: 1;
-            background: transparent;
-            border: 1px solid #50c8c8;
-            color: #50c8c8;
-            padding: 0.75rem 2rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .forge-btn:hover {
-            background: #50c8c8;
-            color: #0a0a0a;
-        }
-
-        .forge-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Thinking Section */
-        .thinking-section {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            display: none;
-        }
-
-        .thinking-section.active {
-            display: block;
-        }
-
-        .thinking-header {
-            color: #50c8c8;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .thinking-step {
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.85rem;
-            color: #888;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #1a1a1a;
-            opacity: 0;
-            animation: fadeIn 0.3s forwards;
-        }
-
-        .thinking-step::before {
-            content: "→ ";
-            color: #50c8c8;
-        }
-
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-
-        /* Results */
-        .results-section {
-            display: none;
-        }
-
-        .results-section.active {
-            display: block;
-        }
-
-        .result-card {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            position: relative;
-            cursor: grab;
-            user-select: none;
-        }
-
-        .result-card:active {
-            cursor: grabbing;
-        }
-
-        .result-card.dragging {
-            position: fixed;
-            z-index: 1000;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        .result-card h3 {
-            color: #fff;
-            font-size: 1rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .result-card h3::before {
-            content: "";
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: #50c8c8;
-            border-radius: 50%;
-        }
-
-        .result-card p, .result-card li {
-            color: #999;
-            line-height: 1.7;
-            font-size: 0.95rem;
-        }
-
-        .result-card ul {
-            list-style: none;
-            padding-left: 1rem;
-        }
-
-        .result-card li {
-            padding: 0.3rem 0;
-        }
-
-        .result-card li::before {
-            content: "•";
-            color: #50c8c8;
-            margin-right: 0.5rem;
-        }
-
-        /* Code Block */
-        .code-block {
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-
-        .code-header {
-            background: #111;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #222;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .code-header span {
-            font-family: monospace;
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .copy-btn {
-            background: transparent;
-            border: 1px solid #333;
-            color: #888;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-        }
-
-        .copy-btn:hover {
-            border-color: #50c8c8;
-            color: #50c8c8;
-        }
-
-        .code-block pre {
-            padding: 1rem;
-            overflow-x: auto;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.85rem;
-            color: #ccc;
-            max-height: 400px;
-            margin: 0;
-        }
-
-        /* Fan Control */
-        .fan-control {
-            position: fixed;
-            right: 2rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 8px;
-            padding: 1rem;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .fan-control.active {
-            display: flex;
-        }
-
-        .fan-control label {
-            font-size: 0.7rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
-        }
-
-        .fan-slider {
-            -webkit-appearance: none;
-            width: 150px;
-            height: 6px;
-            background: #222;
-            border-radius: 3px;
-            transform: rotate(-90deg);
-            transform-origin: center;
-        }
-
-        .fan-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #50c8c8;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            color: #444;
-            font-size: 0.8rem;
-            margin-left: 280px;
-        }
-
-        .footer a {
-            color: #50c8c8;
-            text-decoration: none;
-        }
-
-        /* Download Button */
-        .download-btn {
-            display: block;
-            width: 100%;
-            background: #50c8c8;
-            border: none;
-            color: #0a0a0a;
-            padding: 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            margin-top: 1.5rem;
-            transition: all 0.2s;
-        }
-
-        .download-btn:hover {
-            background: #6ee0e0;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-            .main, .footer {
-                margin-left: 0;
-            }
-        }
-    </style>
+/* ===== RESPONSIVE ===== */
+@media(max-width:960px){
+.sidebar{display:none}
+.main{padding:36px 20px 80px}
+.nav-tagline{display:none}
+}
+@media(max-width:640px){
+.hero h1{font-size:26px}
+.btn-row{flex-direction:column}
+.mic-btn,.forge-btn{width:100%}
+.card-3d{width:100%}
+.card-header{flex-direction:column;align-items:flex-start;gap:8px}
+}
+</style>
 </head>
 <body>
-    <!-- Top Bar -->
-    <div class="topbar">
-        <div class="logo">Pain<span>Forge</span></div>
-        <div class="subtitle">GLM-5.1 Agentic MVP Builder • GMI Cloud</div>
+
+<canvas id="bg-canvas"></canvas>
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div class="vignette"></div>
+<div class="orbit orbit-a"><div class="orbit-dot"></div><div class="orbit-dot"></div></div>
+<div class="orbit orbit-b"><div class="orbit-dot"></div><div class="orbit-dot"></div></div>
+
+<!-- NAV -->
+<nav>
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    <div class="brand-name">Pain<em>Forge</em></div>
+  </div>
+  <div class="nav-meta">
+    <span class="nav-tagline">GLM-5.1 Agentic MVP Builder · GMI Cloud · Singapore 2026</span>
+    <div class="api-wrap">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <input type="password" id="api-key" placeholder="GMI API Key" spellcheck="false" autocomplete="off" />
+    </div>
+    <div class="flag"><div class="flag-saffron"></div><div class="flag-white"></div><div class="flag-green"></div></div>
+  </div>
+</nav>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-title">Real Indian Pain Points</div>
+    <div class="pain-item" data-key="freelancer"><span class="pain-num">1</span><span>Freelancers chasing UPI / PayPal payments with no single source of truth</span></div>
+    <div class="pain-item" data-key="gst"><span class="pain-num">2</span><span>Indian startups struggling with GST compliance & filing</span></div>
+    <div class="pain-item" data-key="pitch"><span class="pain-num">3</span><span>Founders writing pitch decks in English + Hindi + regional languages</span></div>
+    <div class="pain-item" data-key="kirana"><span class="pain-num">4</span><span>Kirana store inventory, ordering & stock tracking</span></div>
+    <div class="pain-item" data-key="clinic"><span class="pain-num">5</span><span>Clinic appointment booking & patient management</span></div>
+    <div class="pain-item" data-key="delivery"><span class="pain-num">6</span><span>Local delivery tracking for small businesses</span></div>
+    <div class="sb-footer"><p><strong>Why India?</strong> 60M+ small businesses. 800M+ internet users. 22 official languages. The world's largest untapped SaaS market.</p></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="hero">
+      <h1>Describe the <em>real pain</em><br>you want to solve</h1>
+      <p class="sub">PainForge uses GLM-5.1 agentic reasoning to deeply analyze your problem, architect a solution, and generate a production-ready MVP — in seconds. <kbd>Ctrl+Enter</kbd> to forge.</p>
     </div>
 
-    <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <h3>Quick Indian Pain Examples</h3>
-            <div class="sidebar-item" data-pain="freelancer">Freelancers chasing UPI / PayPal payments</div>
-            <div class="sidebar-item" data-pain="gst">Indian startups handling GST compliance</div>
-            <div class="sidebar-item" data-pain="pitch">Founders writing pitch decks in English + Hindi</div>
-            <div class="sidebar-item" data-pain="kirana">Kirana store inventory & ordering</div>
-            <div class="sidebar-item" data-pain="clinic">Clinic appointment booking system</div>
-            <div class="sidebar-item" data-pain="delivery">Local delivery tracking for small businesses</div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main">
-            <h1>Describe the real pain</h1>
-
-            <!-- Input -->
-            <div class="input-card">
-                <textarea id="painInput" placeholder="Indian freelancers waste hours chasing payments across UPI, WhatsApp, and email with no single source of truth..."></textarea>
-                <div class="btn-row">
-                    <button class="mic-btn" id="micBtn">🎤 Hold to speak</button>
-                    <button class="forge-btn" id="forgeBtn">FORGE MVP</button>
-                </div>
-            </div>
-
-            <!-- Thinking -->
-            <div class="thinking-section" id="thinkingSection">
-                <div class="thinking-header">
-                    <span>●</span>
-                    <span>GLM-5.1 is thinking through your MVP...</span>
-                </div>
-                <div id="thinkingSteps"></div>
-            </div>
-
-            <!-- Results -->
-            <div class="results-section" id="resultsSection">
-                <!-- Problem -->
-                <div class="result-card" id="problemCard">
-                    <h3>Problem Summary</h3>
-                    <p id="problemText"></p>
-                </div>
-
-                <!-- Users & Features -->
-                <div class="result-card" id="usersCard">
-                    <h3>Target Users & Core Features</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <h4 style="color: #666; font-size: 0.8rem; margin-bottom: 0.5rem;">WHO</h4>
-                            <ul id="usersList"></ul>
-                        </div>
-                        <div>
-                            <h4 style="color: #666; font-size: 0.8rem; margin-bottom: 0.5rem;">WHAT</h4>
-                            <ul id="featuresList"></ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Code -->
-                <div class="result-card" id="codeCard">
-                    <h3>Generated Code</h3>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span id="codeFilename">app.py</span>
-                            <button class="copy-btn" id="copyBtn">Copy</button>
-                        </div>
-                        <pre id="codeContent"></pre>
-                    </div>
-                </div>
-
-                <!-- Deploy -->
-                <div class="result-card" id="deployCard">
-                    <h3>Deploy to GMI Cloud</h3>
-                    <p id="deployText"></p>
-                </div>
-
-                <!-- Download -->
-                <button class="download-btn" id="downloadBtn">Download Complete MVP</button>
-            </div>
-        </div>
-
-        <!-- Fan Control -->
-        <div class="fan-control" id="fanControl">
-            <label>Force</label>
-            <input type="range" class="fan-slider" id="fanSlider" min="0" max="100" value="0">
-        </div>
+    <div class="textarea-area">
+      <textarea id="pain-input" placeholder="e.g. Kirana store owners in Tier-2 India manage inventory on paper. Vegetables expire, milk spoils, and there's no way to predict demand or track stock before the morning vendor arrives. They lose ₹2,000-5,000/month in waste alone..."></textarea>
+      <div class="char-count"><span id="char-count">0</span> chars</div>
     </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        Built live at GMIxGLM Hackathon Singapore • Powered by GLM-5.1 on GMI Cloud via OpenCode • From India 🇮🇳
+    <div class="btn-row">
+      <button class="mic-btn" id="mic-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.93V21h2v-3.07A7 7 0 0019 11h-2z"/></svg>
+        <span>Hold to Speak</span>
+        <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
+        <div class="pulse"></div>
+      </button>
+      <button class="forge-btn" id="forge-btn">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 10 10-12h-9l1-10z"/></svg>
+        FORGE THE MVP
+        <span class="demo-badge" id="demo-badge">DEMO</span>
+      </button>
     </div>
 
-    <script>
-        // Config
-        const API_URL = 'https://api.gmi-serving.com/v1/chat/completions';
-        const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBkMWMzYTJiLWZiMmEtNDNhOS04MGVlLWEzNWNlZTRlYjIyNiIsInNjb2BlIjoiaWVfbW9kZWwiLCJjbGllbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9.EEEh20kvdGvMExxJ9cV9-DShA-1rRPTIULLEyUAhORw';
-        const MODEL = 'zai-org/GLM-5.1-FP8';
+    <div class="result-area" id="result-area">
+      <div class="card-stage" id="card-stage">
+        <div class="card-3d" id="card-3d">
+          <div class="card-face" id="card-face">
+            <div class="card-sheen" id="card-sheen"></div>
+            <div class="card-header">
+              <h3><span class="icon">⚡</span> PainForge MVP Card</h3>
+              <span class="card-badge">GLM-5.1 Generated</span>
+            </div>
+            <div class="card-body" id="card-body"></div>
+          </div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <label>🌀 Wind Force</label>
+        <input type="range" id="wind-slider" min="0" max="100" value="0" />
+        <span class="slider-val" id="wind-val">0</span>
+      </div>
+      <div class="actions-row">
+        <button class="action-btn" id="copy-all-btn"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy All</button>
+        <button class="action-btn" id="new-forge-btn"><svg viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Forge Again</button>
+      </div>
+    </div>
+  </main>
+</div>
 
-        // DOM Elements
-        const painInput = document.getElementById('painInput');
-        const micBtn = document.getElementById('micBtn');
-        const forgeBtn = document.getElementById('forgeBtn');
-        const thinkingSection = document.getElementById('thinkingSection');
-        const thinkingSteps = document.getElementById('thinkingSteps');
-        const resultsSection = document.getElementById('resultsSection');
-        const fanControl = document.getElementById('fanControl');
-        const fanSlider = document.getElementById('fanSlider');
+<!-- THINKING OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-inner">
+    <div class="term" style="position:relative">
+      <!-- SVG Gears -->
+      <svg class="gears-svg" viewBox="0 0 100 100" id="gears-svg">
+        <g class="gear gear-a" transform-origin="35 35"><path id="gear-a-path"/></g>
+        <g class="gear gear-b" transform-origin="70 65"><path id="gear-b-path"/></g>
+      </svg>
+      <div class="term-bar">
+        <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+        <span class="term-title">painforge-agent — GLM-5.1</span>
+      </div>
+      <div class="term-body" id="term-body"></div>
+      <div class="term-progress"><div class="term-progress-bar" id="term-progress"></div></div>
+    </div>
+    <div class="overlay-status"><span class="dot"></span>Agentic reasoning pipeline active</div>
+  </div>
+</div>
 
-        // State
-        let mvpData = null;
-        let recognition = null;
-        let isRecording = false;
-        let dragState = { isDragging: false, startX: 0, startY: 0, card: null, offsetX: 0, offsetY: 0, velX: 0, velY: 0 };
-        let fanForce = { x: 0, y: 0, active: false };
+<div class="toast" id="toast"></div>
 
-        // Pain templates
-        const painTemplates = {
-            freelancer: 'Indian freelancers struggle to track payments across UPI, WhatsApp, and email. They manually chase clients and have no centralized invoice system. Build a simple tool with UPI QR codes and payment reminders.',
-            gst: 'Indian startups spend days doing GST compliance manually. Filing returns, reconciling invoices, and tracking deadlines is error-prone. Create an automated GST compliance tool.',
-            pitch: 'Indian founders need to create pitch decks quickly in multiple languages (English + Hindi) for different investors. Build a tool that generates professional pitch decks from key points.',
-            kirana: 'A local kirana store wants to manage inventory and take WhatsApp orders for 30-minute delivery. Staff need a simple interface to track stock and process orders.',
-            clinic: 'A clinic needs appointment booking with SMS/WhatsApp reminders. Doctors want to see their daily schedule and patients need easy online booking.',
-            delivery: 'Small local delivery business tracks packages via WhatsApp and phone calls. Build a real-time tracking system for drivers and customers.'
-        };
+<footer>Built live at <span>GMI×GLM Hackathon Singapore</span> · From India · Powered by <span>GLM-5.1</span> on GMI Cloud via OpenCode</footer>
 
-        // Sidebar clicks
-        document.querySelectorAll('.sidebar-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const key = item.dataset.pain;
-                if (painTemplates[key]) {
-                    painInput.value = painTemplates[key];
-                }
-            });
-        });
+<script>
+/* ================================================================
+   PainForge — GLM-5.1 Agentic MVP Builder
+   GMI×GLM Hackathon Singapore 2026
+   ================================================================ */
 
-        // Voice input
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
+// ============================================================
+// 1. PARTICLE SYSTEM — Deep Space Dust
+// ============================================================
+(function(){
+const c=document.getElementById('bg-canvas'),ctx=c.getContext('2d');
+let W,H,pts=[],mouse={x:0,y:0};
+function resize(){W=c.width=innerWidth;H=c.height=innerHeight}
+resize();addEventListener('resize',resize);
+document.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
 
-            micBtn.addEventListener('mousedown', () => {
-                isRecording = true;
-                micBtn.classList.add('recording');
-                micBtn.textContent = '● Recording...';
-                recognition.start();
-            });
+class P{
+  constructor(){this.reset(true)}
+  reset(init){
+    this.x=Math.random()*W;this.y=Math.random()*H;
+    this.r=Math.random()*1.1+.2;
+    this.vx=(Math.random()-.5)*.12;this.vy=(Math.random()-.5)*.12;
+    this.a=Math.random()*.25+.03;
+    this.teal=Math.random()>.9;
+  }
+  update(){
+    const dx=mouse.x-this.x,dy=mouse.y-this.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<200){const f=.02*(1-d/200);this.vx+=dx*f*.01;this.vy+=dy*f*.01}
+    this.x+=this.vx;this.y+=this.vy;
+    this.vx*=.998;this.vy*=.998;
+    if(this.x<-10||this.x>W+10||this.y<-10||this.y>H+10)this.reset();
+  }
+  draw(){
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,6.283);
+    ctx.fillStyle=this.teal?`rgba(13,148,136,${this.a})`:`rgba(180,180,180,${this.a})`;
+    ctx.fill();
+  }
+}
+for(let i=0;i<100;i++)pts.push(new P);
+(function loop(){
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createRadialGradient(W/2,H/2,W*.15,W/2,H/2,W*.75);
+  g.addColorStop(0,'rgba(5,5,5,0)');g.addColorStop(1,'rgba(0,0,0,.35)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  pts.forEach(p=>{p.update();p.draw()});
+  requestAnimationFrame(loop);
+})();
+})();
 
-            micBtn.addEventListener('mouseup', () => {
-                isRecording = false;
-                micBtn.classList.remove('recording');
-                micBtn.textContent = '🎤 Hold to speak';
-                recognition.stop();
-            });
+// ============================================================
+// 2. SVG GEAR GENERATION
+// ============================================================
+function gearPath(cx,cy,R,r,teeth){
+  let d='';const s=Math.PI*2/teeth;
+  for(let i=0;i<teeth;i++){
+    const a=i*s,a1=a+s*.15,a2=a+s*.35,a3=a+s*.5,a4=a+s*.65,a5=a+s*.85;
+    const pts=[[cx+r*Math.cos(a),cy+r*Math.sin(a)],[cx+R*Math.cos(a1),cy+R*Math.sin(a1)],
+      [cx+R*Math.cos(a2),cy+R*Math.sin(a2)],[cx+r*Math.cos(a3),cy+r*Math.sin(a3)],
+      [cx+r*Math.cos(a4),cy+r*Math.sin(a4)],[cx+R*Math.cos(a5),cy+R*Math.sin(a5)]];
+    pts.forEach((p,j)=>{d+=(i===0&&j===0?'M':'L')+p[0]+','+p[1]+' '});
+  }
+  return d+'Z';
+}
+document.getElementById('gear-a-path').setAttribute('d',gearPath(35,35,30,22,12));
+document.getElementById('gear-b-path').setAttribute('d',gearPath(70,65,24,17,10));
 
-            micBtn.addEventListener('mouseleave', () => {
-                if (isRecording) {
-                    isRecording = false;
-                    micBtn.classList.remove('recording');
-                    micBtn.textContent = '🎤 Hold to speak';
-                    recognition.stop();
-                }
-            });
+// ============================================================
+// 3. API KEY PERSISTENCE
+// ============================================================
+const apiKeyEl=document.getElementById('api-key');
+apiKeyEl.value=localStorage.getItem('pf_key')||'';
+apiKeyEl.addEventListener('input',()=>localStorage.setItem('pf_key',apiKeyEl.value));
+function hasKey(){return apiKeyEl.value.trim().length>5}
+function updateDemoBadge(){
+  document.getElementById('demo-badge').classList.toggle('show',!hasKey());
+}
+updateDemoBadge();
+apiKeyEl.addEventListener('input',updateDemoBadge);
 
-            recognition.onresult = (event) => {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
-                }
-                painInput.value = transcript;
-            };
-        } else {
-            micBtn.textContent = 'Voice not supported';
-            micBtn.style.opacity = '0.5';
-        }
+// ============================================================
+// 4. SIDEBAR INTERACTIONS
+// ============================================================
+const pains={
+  freelancer:"Indian freelancers juggle payments across UPI, PayPal, Payoneer, and bank transfers with no unified dashboard. They lose hours weekly reconciling pending invoices, received amounts, TDS deductions, and currency conversion losses. Late payment follow-ups are chaotic — done via WhatsApp, phone calls, and email in parallel with no tracking. They need a single source of truth for all freelance income with automated reminders, tax calculation, and real-time payment status across every platform.",
+  gst:"Early-stage Indian startups find GST compliance overwhelming and error-prone. They struggle with input tax credit reconciliation, filing GSTR-1/GSTR-3B returns on time, managing e-way bills for shipments, and keeping their accounting software in sync with the GST portal. A single filing mistake attracts penalties of ₹50/day plus 18% interest. They desperately need an automated GST compliance copilot that reads their bank transactions, categorizes expenses, auto-fills return forms, and sends filing reminders before deadlines.",
+  pitch:"Indian founders need to pitch to multiple audiences — Hindi-speaking angel investors in Delhi, Tamil-speaking family offices in Chennai, English-speaking global VCs, and government grant committees requiring regional language submissions. Existing tools don't support multilingual pitch decks with consistent design, cultural localization, and investor-grade formatting. They need an AI-powered multilingual pitch deck generator with India-specific templates, market data integration, and one-click translation across 10+ Indian languages.",
+  kirana:"Kirana (neighborhood grocery) store owners across India manage their entire inventory mentally or on paper notebooks. They don't know real-time stock levels, can't predict demand patterns based on seasonality or festivals, lose ₹2,000-5,000/month on expired perishables, and waste hours calling multiple wholesalers for reordering. They need a simple, WhatsApp-first inventory management system that works offline, supports Hindi and regional languages, uses photos for quick stock-in, and connects with local wholesale supply chains for automated ordering.",
+  clinic:"Small private clinics across India still use physical register books for appointment management. Patients call to book (often getting no answer during rush hours), receptionists scribble in diaries (with illegible handwriting), doctors have zero visibility into patient history between visits, and there's no automated follow-up system. Queue management during evening hours is pure chaos. They need a lightweight, WhatsApp-integrated clinic management system with digital appointment booking, patient records, prescription history, automated reminders, and basic billing — all accessible on the doctor's phone.",
+  delivery:"Small local businesses — restaurants, pharmacies, bakeries, sweet shops — in Tier-2/3 Indian cities rely entirely on phone calls and WhatsApp messages to manage deliveries. They can't track their delivery partners in real-time, don't know accurate ETAs to tell customers, have no digital proof of delivery, and struggle with route optimization across multiple stops. During festival seasons, the chaos multiplies 5x. They need an affordable delivery management tool with real-time partner tracking, automated customer ETA notifications, digital proof of delivery with photos, and route optimization — all at under ₹999/month."
+};
+document.querySelectorAll('.pain-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.pain-item').forEach(e=>e.classList.remove('active'));
+    el.classList.add('active');
+    const ta=document.getElementById('pain-input');
+    ta.value=pains[el.dataset.key]||'';
+    ta.style.borderColor='rgba(13,148,136,.3)';
+    ta.focus();
+    updateCharCount();
+  });
+});
 
-        // Forge MVP
-        forgeBtn.addEventListener('click', async () => {
-            const pain = painInput.value.trim();
-            if (!pain) {
-                alert('Please describe your pain point');
-                return;
-            }
+// ============================================================
+// 5. CHARACTER COUNT
+// ============================================================
+const painInput=document.getElementById('pain-input');
+function updateCharCount(){document.getElementById('char-count').textContent=painInput.value.length}
+painInput.addEventListener('input',updateCharCount);
 
-            // Reset
-            forgeBtn.disabled = true;
-            forgeBtn.textContent = 'Thinking...';
-            thinkingSection.classList.add('active');
-            resultsSection.classList.remove('active');
-            thinkingSteps.innerHTML = '';
-            fanControl.classList.remove('active');
+// ============================================================
+// 6. WEB SPEECH API
+// ============================================================
+const micBtn=document.getElementById('mic-btn');
+let recog=null,listening=false;
+if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recog=new SR();recog.continuous=false;recog.interimResults=true;recog.lang='en-IN';
+  function startMic(){if(!recog||listening)return;listening=true;micBtn.classList.add('listening');recog.start()}
+  function stopMic(){if(!listening)return;setTimeout(()=>{try{recog.stop()}catch(e){}listening=false;micBtn.classList.remove('listening')},200)}
+  micBtn.addEventListener('mousedown',e=>{e.preventDefault();startMic()});
+  micBtn.addEventListener('mouseup',stopMic);
+  micBtn.addEventListener('mouseleave',stopMic);
+  micBtn.addEventListener('touchstart',e=>{e.preventDefault();startMic()},{passive:false});
+  micBtn.addEventListener('touchend',stopMic);
+  recog.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;painInput.value+=t;updateCharCount()};
+  recog.onend=()=>{listening=false;micBtn.classList.remove('listening')};
+  recog.onerror=()=>{listening=false;micBtn.classList.remove('listening')};
+}else{micBtn.style.opacity='.35';micBtn.style.pointerEvents='none'}
 
-            // Thinking steps
-            const thinkingTexts = [
-                'Analyzing problem context...',
-                'Identifying target users and pain points...',
-                'Designing MVP architecture...',
-                'Selecting tech stack for rapid deployment...',
-                'Generating production-ready code...',
-                'Adding setup instructions and deploy guide...'
-            ];
-
-            for (let i = 0; i < thinkingTexts.length; i++) {
-                await new Promise(resolve => setTimeout(resolve, 600));
-                const step = document.createElement('div');
-                step.className = 'thinking-step';
-                step.textContent = thinkingTexts[i];
-                thinkingSteps.appendChild(step);
-            }
-
-            // Call API
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        model: MODEL,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: `You are an elite startup CTO. Transform ANY pain point into a complete MVP blueprint.
-
-Output STRICT JSON only, no markdown:
-{
-    "problem_summary": "2 sentence description",
-    "target_users": ["user1", "user2"],
-    "core_features": ["feature1", "feature2", "feature3"],
-    "tech_stack": {"frontend": "tech", "backend": "tech", "database": "tech", "deployment": "tech"},
-    "mvp_code": {"app.py": "FULL runnable python code with Streamlit, include all imports, error handling, and professional UI"},
-    "setup_instructions": ["step1", "step2"],
-    "deployment_guide": "how to deploy",
-    "estimated_cost": "₹X/month",
-    "time_to_market": "X days"
+// ============================================================
+// 7. TOAST
+// ============================================================
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
 }
 
-Include COMPLETE working code. Focus on Indian market: UPI payments, WhatsApp integration.`
-                            },
-                            {
-                                role: 'user',
-                                content: pain
-                            }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 8192,
-                        thinking: { type: 'adaptive' }
-                    })
-                });
+// ============================================================
+// 8. FORGE — Main Pipeline
+// ============================================================
+const forgeBtn=document.getElementById('forge-btn');
+const overlay=document.getElementById('overlay');
+const termBody=document.getElementById('term-body');
+const termProgress=document.getElementById('term-progress');
+const resultArea=document.getElementById('result-area');
 
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'API Error');
-                }
+forgeBtn.addEventListener('click',runForge);
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();runForge()}});
 
-                let content = data.choices[0].message.content;
-                
-                // Parse JSON
-                const jsonMatch = content.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    mvpData = JSON.parse(jsonMatch[0]);
-                    displayResults();
-                } else {
-                    throw new Error('Could not parse response');
-                }
+async function runForge(){
+  const pain=painInput.value.trim();
+  if(!pain){painInput.focus();painInput.style.borderColor='rgba(239,68,68,.4)';setTimeout(()=>painInput.style.borderColor='',1500);return}
+  termBody.innerHTML='';termProgress.style.width='0%';
+  overlay.classList.add('active');
+  resultArea.classList.remove('active');
 
-            } catch (error) {
-                console.error(error);
-                alert('Error: ' + error.message);
-            }
+  let data;
+  if(hasKey()){
+    try{
+      data=await streamGLM(pain,apiKeyEl.value.trim());
+    }catch(err){
+      console.error('API Error:',err);
+      addTermLine('','API error — falling back to demo mode','dim');
+      await sleep(400);
+      data=await demoReason(pain);
+    }
+  }else{
+    data=await demoReason(pain);
+  }
 
-            forgeBtn.disabled = false;
-            forgeBtn.textContent = 'FORGE MVP';
-        });
+  await sleep(500);
+  overlay.classList.remove('active');
+  await sleep(300);
+  renderCard(data);
+  resultArea.classList.add('active');
+  resultArea.scrollIntoView({behavior:'smooth',block:'start'});
+  initCardPhysics();
+}
 
-        // Display results
-        function displayResults() {
-            thinkingSection.classList.remove('active');
-            resultsSection.classList.add('active');
-            fanControl.classList.add('active');
+// ============================================================
+// 9. STREAMING GLM-5.1 API
+// ============================================================
+const SYS_PROMPT=`You are PainForge Agent, built for the GMI×GLM Hackathon Singapore 2026. You are the world's best Indian startup MVP architect powered by GLM-5.1.
 
-            document.getElementById('problemText').textContent = mvpData.problem_summary || '';
+Your job: Given a real Indian pain point, perform deep multi-step agentic reasoning and output a COMPLETE, production-ready MVP plan.
 
-            const usersList = document.getElementById('usersList');
-            usersList.innerHTML = '';
-            (mvpData.target_users || []).forEach(user => {
-                const li = document.createElement('li');
-                li.textContent = user;
-                usersList.appendChild(li);
-            });
+Reasoning steps you MUST follow:
+1. Deeply analyze the root causes in the Indian context (regulatory, cultural, infrastructural)
+2. Map all affected user personas with demographics and behavior patterns
+3. Research the competitive landscape and identify market gaps specific to India
+4. Define 6-8 core MVP features with India-specific implementation details
+5. Design system architecture: tech stack, database schema, API design, third-party integrations
+6. Plan monetization strategy suited for the Indian market (price-sensitive users)
+7. Write complete, runnable production code (TypeScript/Next.js backend + frontend)
+8. Provide step-by-step deployment instructions for GMI Cloud
 
-            const featuresList = document.getElementById('featuresList');
-            featuresList.innerHTML = '';
-            (mvpData.core_features || []).forEach(feature => {
-                const li = document.createElement('li');
-                li.textContent = feature;
-                featuresList.appendChild(li);
-            });
+CRITICAL OUTPUT FORMAT: Return ONLY valid JSON. No markdown fences. No explanations outside JSON.
+{
+  "problem": "2-3 sentence problem analysis with Indian context and market size",
+  "users": "Detailed target user personas with demographics, behavior, pain severity",
+  "features": ["Feature 1: detailed description with Indian-specific implementation", "Feature 2: ...", ...],
+  "architecture": "Tech stack, database design, API routes, third-party integrations (UPI, WhatsApp, GST, etc.)",
+  "code": "Complete runnable TypeScript/Next.js code with proper error handling, TypeScript types, and Indian-specific logic. Must be at least 80 lines.",
+  "deploy": "Numbered step-by-step GMI Cloud deployment instructions",
+  "metrics": "3-5 KPIs to track for this MVP"
+}`;
 
-            const codeFiles = Object.entries(mvpData.mvp_code || {});
-            const [filename, code] = codeFiles[0] || ['app.py', '# No code generated'];
+async function streamGLM(pain,key){
+  addTermLine('$','Initializing PainForge Agent v1.0...','accent');
+  await sleep(300);
+  addTermLine('>','Connecting to GLM-5.1 on GMI Cloud...','bold');
+  await sleep(400);
+  addTermLine('✓','Connection established. Model: zai-org/GLM-5.1','accent');
+  await sleep(200);
+  addTermLine('>','Streaming agentic reasoning pipeline...','bold');
+  addTermLine('','─────────────────────────────────────────','dim');
+  await sleep(200);
 
-            document.getElementById('codeFilename').textContent = filename;
-            document.getElementById('codeContent').textContent = code;
+  const resp=await fetch('https://api.gmi-serving.com/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({
+      model:'zai-org/GLM-5.1',
+      messages:[
+        {role:'system',content:SYS_PROMPT},
+        {role:'user',content:'Pain Point (from India):\n\n'+pain+'\n\nGenerate a complete MVP plan following your reasoning pipeline. Output clean JSON only.'}
+      ],
+      stream:true,temperature:0.7,max_tokens:4096
+    })
+  });
 
-            document.getElementById('deployText').textContent = 
-                `Setup: ${(mvpData.setup_instructions || []).join('. ')}. \n\nDeploy: ${mvpData.deployment_guide || 'Follow standard deployment process.'}`;
+  if(!resp.ok)throw new Error('HTTP '+resp.status);
+
+  const reader=resp.body.getReader();
+  const decoder=new TextDecoder();
+  let full='',chunkCount=0,buffer='';
+
+  while(true){
+    const{done,value}=await reader.read();
+    if(done)break;
+    buffer+=decoder.decode(value,{stream:true});
+    const lines=buffer.split('\n');
+    buffer=lines.pop()||'';
+
+    for(const line of lines){
+      const trimmed=line.trim();
+      if(!trimmed.startsWith('data:'))continue;
+      const data=trimmed.slice(5).trim();
+      if(data==='[DONE]')continue;
+      try{
+        const parsed=JSON.parse(data);
+        const delta=parsed.choices?.[0]?.delta?.content||'';
+        if(delta){
+          full+=delta;chunkCount++;
+          // Update terminal with streaming text
+          if(chunkCount%3===0)updateTermStream(full);
+          termProgress.style.width=Math.min(95,(chunkCount/50)*100)+'%';
         }
+      }catch(e){}
+    }
+  }
 
-        // Copy code
-        document.getElementById('copyBtn').addEventListener('click', () => {
-            const code = document.getElementById('codeContent').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = document.getElementById('copyBtn');
-                btn.textContent = 'Copied!';
-                setTimeout(() => btn.textContent = 'Copy', 2000);
-            });
-        });
+  addTermLine('','─────────────────────────────────────────','dim');
+  addTermLine('✓','Received '+full.length+' characters of structured reasoning','accent');
+  termProgress.style.width='100%';
 
-        // Download
-        document.getElementById('downloadBtn').addEventListener('click', () => {
-            const blob = new Blob([JSON.stringify(mvpData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `mvp_${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        });
+  // Parse JSON from response
+  try{
+    const jsonMatch=full.match(/\{[\s\S]*\}/);
+    if(jsonMatch)return JSON.parse(jsonMatch[0]);
+    // Try to fix common JSON issues
+    const cleaned=full.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const match2=cleaned.match(/\{[\s\S]*\}/);
+    if(match2)return JSON.parse(match2[0]);
+    throw new Error('No JSON found');
+  }catch(e){
+    console.error('JSON parse error:',e);
+    return generateFallbackMVP(pain,full);
+  }
+}
 
-        // Drag physics
-        document.querySelectorAll('.result-card').forEach(card => {
-            card.addEventListener('mousedown', (e) => {
-                if (e.target.closest('button') || e.target.closest('.code-block')) return;
-                
-                dragState.isDragging = true;
-                dragState.card = card;
-                dragState.startX = e.clientX;
-                dragState.startY = e.clientY;
-                const rect = card.getBoundingClientRect();
-                dragState.offsetX = e.clientX - rect.left;
-                dragState.offsetY = e.clientY - rect.top;
-                dragState.velX = 0;
-                dragState.velY = 0;
-                card.classList.add('dragging');
-                card.style.left = rect.left + 'px';
-                card.style.top = rect.top + 'px';
-                card.style.width = rect.width + 'px';
-            });
-        });
+// ============================================================
+// 10. DEMO MODE — Realistic Agentic Reasoning Simulation
+// ============================================================
+async function demoReason(pain){
+  addTermLine('$','Initializing PainForge Agent v1.0...','accent');
+  await sleep(400);
+  addTermLine('>','Demo mode — using pre-built agentic pipeline','bold');
+  await sleep(300);
 
-        document.addEventListener('mousemove', (e) => {
-            if (!dragState.isDragging) return;
-            
-            const dx = e.clientX - dragState.startX;
-            const dy = e.clientY - dragState.startY;
-            
-            dragState.velX = dx * 0.3 + dragState.velX * 0.7;
-            dragState.velY = dy * 0.3 + dragState.velY * 0.7;
-            
-            const rect = dragState.card.getBoundingClientRect();
-            dragState.card.style.left = (e.clientX - dragState.offsetX) + 'px';
-            dragState.card.style.top = (e.clientY - dragState.offsetY) + 'px';
-            
-            dragState.startX = e.clientX;
-            dragState.startY = e.clientY;
-        });
+  const steps=[
+    ['STEP 1','Deep pain domain analysis','Scanning problem space for root causes in Indian regulatory, cultural, and infrastructural context...'],
+    ['STEP 2','User persona mapping','Identifying primary and secondary user segments with behavioral patterns and willingness to pay...'],
+    ['STEP 3','Competitive landscape scan','Analyzing existing solutions and identifying white-space opportunities in the Indian market...'],
+    ['STEP 4','MVP feature prioritization','Applying RICE framework with India-specific weightings (reach × impact × confidence ÷ effort)...'],
+    ['STEP 5','System architecture design','Selecting optimal tech stack for Indian conditions: low bandwidth, vernacular support, UPI integration...'],
+    ['STEP 6','API integration planning','Mapping third-party APIs: UPI Payment Gateway, WhatsApp Business API, GST Portal, Aadhaar eKYC...'],
+    ['STEP 7','Production code generation','Writing TypeScript/Next.js code with proper error handling, types, and Indian-specific business logic...'],
+    ['STEP 8','Deployment configuration','Configuring GMI Cloud deployment with ap-south-1 region, auto-scaling, and CDN optimization...'],
+  ];
 
-        document.addEventListener('mouseup', () => {
-            if (dragState.isDragging) {
-                dragState.isDragging = false;
-                dragState.card.classList.remove('dragging');
-                dragState.card.style.left = '';
-                dragState.card.style.top = '';
-                dragState.card.style.width = '';
-                
-                // Apply momentum
-                applyMomentum();
-            }
-        });
+  for(let i=0;i<steps.length;i++){
+    const[label,title,desc]=steps[i];
+    addTermLine(label,title,'bold');
+    await sleep(150);
+    addTermLine('',desc);
+    await sleep(350+Math.random()*300);
+    termProgress.style.width=((i+1)/steps.length*100)+'%';
+  }
 
-        function applyMomentum() {
-            if (Math.abs(dragState.velX) < 1 && Math.abs(dragState.velY) < 1) return;
-            
-            const card = dragState.card;
-            const friction = 0.95;
-            
-            function animate() {
-                if (Math.abs(dragState.velX) < 0.5 && Math.abs(dragState.velY) < 0.5) return;
-                
-                dragState.velX *= friction;
-                dragState.velY *= friction;
-                
-                card.style.transform = `translate(${dragState.velX}px, ${dragState.velY}px)`;
-                
-                requestAnimationFrame(animate);
-            }
-            
-            animate();
-            
-            setTimeout(() => {
-                card.style.transform = '';
-            }, 1000);
-        }
+  addTermLine('','─────────────────────────────────────────','dim');
+  addTermLine('✓','MVP plan generated successfully','accent');
+  termProgress.style.width='100%';
 
-        // Fan force
-        fanSlider.addEventListener('input', () => {
-            const val = fanSlider.value / 100;
-            fanForce.x = (Math.random() - 0.5) * val * 20;
-            fanForce.y = -val * 30;
-        });
+  return generateFallbackMVP(pain);
+}
 
-        // Animate floating cards with fan
-        function animateCards() {
-            if (fanSlider.value > 0) {
-                document.querySelectorAll('.result-card').forEach(card => {
-                    const current = card.style.transform || 'translate(0, 0)';
-                    const match = current.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-                    let x = match ? parseFloat(match[1]) : 0;
-                    let y = match ? parseFloat(match[2]) : 0;
-                    
-                    x += fanForce.x * 0.1 + (Math.random() - 0.5) * 2;
-                    y += fanForce.y * 0.1 + Math.random() * 2;
-                    
-                    // Bounds
-                    x = Math.max(-50, Math.min(50, x));
-                    y = Math.max(-20, Math.min(20, y));
-                    
-                    card.style.transform = `translate(${x}px, ${y}px)`;
-                });
-            }
-            requestAnimationFrame(animateCards);
-        }
-        animateCards();
-    </script>
+function generateFallbackMVP(pain,rawContent){
+  const shortPain=pain.length>120?pain.substring(0,117)+'...':pain;
+  return{
+    problem:shortPain+' This represents a systemic friction point affecting millions of Indian businesses and individuals daily. The root cause spans infrastructural gaps (fragmented digital payment rails), regulatory complexity (GST/TDS compliance burden), and behavioral patterns (preference for cash/WhatsApp over formal tools). The total addressable market exceeds ₹15,000 Cr annually, yet no solution adequately serves users at the bottom of the digital adoption curve.',
+    users:'Primary: Small business owners and freelancers aged 25-50 across Tier-1 to Tier-3 Indian cities (estimated 60M+). Secondary: their employees, accountants, and wholesale suppliers. These are smartphone-first users comfortable with PhonePe/WhatsApp but resistant to complex enterprise software. Average monthly spend on digital tools: ₹500-2,000. They prefer vernacular interfaces (Hindi, Tamil, Telugu, Marathi) and WhatsApp-native workflows over standalone apps.',
+    features:[
+      'WhatsApp-native interface: Users interact entirely through WhatsApp messages — no app download required. Supports text, voice notes, and image inputs for zero-friction onboarding.',
+      'Real-time multi-platform payment tracking: Unified dashboard aggregating UPI, bank transfer, PayPal, and Payoneer transactions with auto-reconciliation and pending payment alerts.',
+      'Automated GST compliance engine: Auto-categorizes expenses, calculates input tax credit, pre-fills GSTR-1/GSTR-3B forms, and sends filing reminders 7 days before deadlines.',
+      'Vernacular voice AI: Supports Hindi, Tamil, Telugu, Bengali, Marathi, and Kannada voice inputs for all operations — inventory logging, expense recording, and query handling.',
+      'Smart demand prediction: ML-based forecasting using historical sales data, festival calendars, and local event patterns to predict stock requirements and reduce waste by 30-40%.',
+      'One-click digital invoicing: Generate GST-compliant invoices in under 10 seconds with automatic TDS calculation, payment link generation (UPI), and delivery tracking integration.',
+      'Offline-first architecture: Full functionality without internet using service workers and local storage. Syncs automatically when connectivity is restored — critical for Tier-3 India.',
+      'Deployment-ready microservices: Dockerized Next.js frontend + FastAPI backend with PostgreSQL, Redis caching, and horizontal auto-scaling configured for GMI Cloud ap-south-1 region.'
+    ],
+    architecture:'Frontend: Next.js 14 (App Router) with React Server Components, Tailwind CSS, PWA support. Backend: FastAPI (Python 3.12) with async endpoints, SQLAlchemy ORM, Alembic migrations. Database: PostgreSQL 16 with pgvector for search. Cache: Redis 7 with pub/sub for real-time updates. Queue: Bull/BullMQ for background jobs (GST filing, invoice generation, notifications). Integrations: Razorpay/PhonePe UPI, WhatsApp Business API (Meta), GST Sandbox API, Aadhaar eKYC. Hosting: GMI Cloud (ap-south-1) with Docker containers, auto-scaling (2-16 pods), CloudFront CDN, and 99.9% SLA.',
+    code:`// ============================================================
+// PainForge MVP — Next.js 14 + TypeScript + Prisma
+// Complete API Route: Multi-Platform Payment Tracker
+// ============================================================
+
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+// ---- Types ----
+interface Payment {
+  id: string;
+  amount: number;
+  currency: 'INR' | 'USD';
+  platform: 'upi' | 'paypal' | 'bank' | 'payoneer';
+  status: 'pending' | 'received' | 'failed';
+  description: string;
+  tds: number; // TDS deducted at source
+  conversionRate?: number;
+  invoiceUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface CreatePaymentDTO {
+  amount: number;
+  currency: string;
+  platform: string;
+  description: string;
+  clientName: string;
+  clientEmail?: string;
+  dueDate?: string;
+}
+
+// ---- POST: Create Payment ----
+export async function POST(req: NextRequest) {
+  try {
+    const body: CreatePaymentDTO = await req.json();
+    const { amount, currency, platform, description,
+            clientName, clientEmail, dueDate } = body;
+
+    // Validate
+    if (!amount || amount <= 0) {
+      return NextResponse.json(
+        { error: 'Invalid amount. Must be positive number.' },
+        { status: 400 }
+      );
+    }
+    if (!['upi','paypal','bank','payoneer'].includes(platform)) {
+      return NextResponse.json(
+        { error: 'Unsupported platform: ' + platform },
+        { status: 400 }
+      );
+    }
+
+    // Calculate TDS (Indian tax law: 10% for domestic, 0% for exports)
+    const tds = currency === 'INR'
+      ? Math.round(amount * 0.10 * 100) / 100
+      : 0;
+
+    // Create payment record
+    const payment = await prisma.payment.create({
+      data: {
+        amount,
+        currency: currency.toUpperCase() as 'INR' | 'USD',
+        platform,
+        status: 'pending',
+        description,
+        tds,
+        clientName,
+        clientEmail,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        invoiceUrl: null,
+      }
+    });
+
+    // Generate UPI payment link if platform is UPI
+    let paymentLink = null;
+    if (platform === 'upi') {
+      paymentLink = generateUPIlink(payment.id, amount);
+    }
+
+    // Send WhatsApp notification (async)
+    if (clientEmail) {
+      sendReminder(clientEmail, payment.id, amount, dueDate)
+        .catch(console.error); // Don't block response
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { ...payment, paymentLink },
+      message: 'Payment record created. Awaiting confirmation.'
+    });
+
+  } catch (error: any) {
+    console.error('Payment creation failed:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// ---- GET: Dashboard Summary ----
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const period = searchParams.get('period') || 'month';
+
+  const startDate = new Date();
+  if (period === 'week') startDate.setDate(startDate.getDate() - 7);
+  else if (period === 'month') startDate.setMonth(startDate.getMonth() - 1);
+  else startDate.setFullYear(startDate.getFullYear() - 1);
+
+  const [payments, summary] = await Promise.all([
+    prisma.payment.findMany({
+      where: { createdAt: { gte: startDate } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }),
+    prisma.payment.aggregate({
+      where: { createdAt: { gte: startDate } },
+      _sum: { amount: true, tds: true },
+      _count: true,
+      _groupBy: { platform: true, status: true },
+    }),
+  ]);
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      payments,
+      totalReceived: summary._sum.amount || 0,
+      totalTDS: summary._sum.tds || 0,
+      count: summary._count || 0,
+    }
+  });
+}
+
+// ---- Helpers ----
+function generateUPIlink(id: string, amount: number): string {
+  const params = new URLSearchParams({
+    pa: 'painforge@upi',
+    pn: 'PainForge Payment',
+    am: amount.toString(),
+    tr: id,
+    cu: 'INR',
+  });
+  return 'upi://pay?' + params.toString();
+}
+
+async function sendReminder(
+  email: string, id: string,
+  amount: number, due?: Date
+) {
+  // Integrate with WhatsApp Business API or email
+  console.log('Reminder sent to', email, 'for', id);
+}`,
+    deploy:`1. Prerequisites: Node.js 20+, Docker, GMI Cloud CLI\n2. Clone: git clone https://github.com/painforge/mvp-starter\n3. Install deps: npm install && npx prisma generate\n4. Set environment: cp .env.example .env.local\n5. Push DB schema: npx prisma db push\n6. Build: npm run build\n7. Install GMI CLI: npm i -g @gmi-cloud/cli\n8. Authenticate: gmi login --token YOUR_GMI_TOKEN\n9. Deploy: gmi deploy --region ap-south-1 --env production\n10. Your MVP is live at: https://your-app.gmi.app\n11. Connect custom domain: gmi domain add yourdomain.com\n12. Enable monitoring: gmi monitor enable --alerts slack\n13. Set up auto-scaling: gmi autoscale --min 2 --max 16 --cpu 70`,
+    metrics:['Monthly Active Users (MAU) — target: 1,000 in month 1','Payment reconciliation time — target: reduce from 3 hours to 5 minutes','GST filing accuracy — target: 99.5% error-free submissions','Average revenue per user (ARPU) — target: ₹999/month by month 6','Net Promoter Score (NPS) — target: 60+ within first quarter']
+  };
+}
+
+// ============================================================
+// 11. TERMINAL HELPERS
+// ============================================================
+function addTermLine(prefix,text,cls=''){
+  const div=document.createElement('div');
+  div.className='line'+(cls?' '+cls:'');
+  div.innerHTML=prefix?`<span style="color:var(--accent);margin-right:8px">${prefix}</span>${escHtml(text)}`:escHtml(text);
+  termBody.appendChild(div);
+  termBody.scrollTop=termBody.scrollHeight;
+}
+function updateTermStream(text){
+  let last=termBody.querySelector('.stream-block');
+  if(!last){last=document.createElement('div');last.className='line stream-block';termBody.appendChild(last)}
+  last.innerHTML=escHtml(text.substring(text.length-600));
+  const cursor=document.createElement('span');
+  cursor.className='cursor';last.appendChild(cursor);
+  termBody.scrollTop=termBody.scrollHeight;
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ============================================================
+// 12. RENDER MVP CARD
+// ============================================================
+function renderCard(data){
+  const body=document.getElementById('card-body');
+  let html='';
+
+  // Problem
+  html+=`<div class="card-section"><h4>Problem Analysis</h4><p>${escHtml(data.problem)}</p></div>`;
+
+  // Users
+  html+=`<div class="card-section"><h4>Target Users</h4><p>${escHtml(data.users)}</p></div>`;
+
+  // Features
+  const feats=data.features||[];
+  html+=`<div class="card-section"><h4>Core Features (${feats.length})</h4><ul>`;
+  feats.forEach(f=>{html+=`<li>${escHtml(f)}</li>`});
+  html+=`</ul></div>`;
+
+  // Architecture
+  if(data.architecture){
+    html+=`<div class="card-section"><h4>Architecture</h4><p>${escHtml(data.architecture)}</p></div>`;
+  }
+
+  // Code
+  if(data.code){
+    const highlighted=highlightSyntax(data.code);
+    html+=`<div class="card-section"><h4>Generated Code</h4><div class="code-wrap">
+      <div class="code-bar"><span class="code-lang">TypeScript</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+      <div class="code-body">${highlighted}</div>
+    </div></div>`;
+  }
+
+  // Deploy
+  if(data.deploy){
+    html+=`<div class="card-section"><h4>Deploy to GMI Cloud</h4><div class="deploy-box"><strong>Deployment Steps</strong><br>${escHtml(data.deploy)}</div></div>`;
+  }
+
+  // Metrics
+  if(data.metrics&&data.metrics.length){
+    html+=`<div class="card-section"><h4>Success Metrics</h4><ul>`;
+    data.metrics.forEach(m=>{html+=`<li>${escHtml(m)}</li>`});
+    html+=`</ul></div>`;
+  }
+
+  body.innerHTML=html;
+}
+
+// ============================================================
+// 13. SYNTAX HIGHLIGHTING (simple regex-based)
+// ============================================================
+function highlightSyntax(code){
+  let h=escHtml(code);
+  // Comments
+  h=h.replace(/(\/\/[^\n]*)/g,'<span class="cmt">$1</span>');
+  h=h.replace(/(\/\*\*?[\s\S]*?\*\/)/g,'<span class="cmt">$1</span>');
+  // Strings
+  h=h.replace(/(&#39;[^&#]*?&#39;|&quot;[^&]*?&quot;|`[^`]*?`)/g,'<span class="str">$1</span>');
+  // Keywords
+  h=h.replace(/\b(import|from|export|const|let|var|function|return|if|else|try|catch|async|await|new|class|interface|type|extends|implements|typeof|instanceof|throw|default|switch|case|break|continue|for|while|do|of|in|as|readonly|private|public|static|void|null|undefined|true|false|this)\b/g,'<span class="kw">$1</span>');
+  // Numbers
+  h=h.replace(/\b(\d+\.?\d*)\b/g,'<span class="num">$1</span>');
+  // Function calls
+  h=h.replace(/\b([a-zA-Z_]\w*)\s*\(/g,'<span class="fn">$1</span>(');
+  return h;
+}
+
+// ============================================================
+// 14. COPY FUNCTIONS
+// ============================================================
+function copyCode(btn){
+  const code=btn.closest('.code-wrap').querySelector('.code-body').textContent;
+  navigator.clipboard.writeText(code).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1500)});
+}
+document.getElementById('copy-all-btn').addEventListener('click',()=>{
+  const text=document.getElementById('card-body').innerText;
+  navigator.clipboard.writeText(text).then(()=>toast('Full MVP plan copied to clipboard'));
+});
+document.getElementById('new-forge-btn').addEventListener('click',()=>{
+  painInput.value='';updateCharCount();
+  resultArea.classList.remove('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  painInput.focus();
+});
+
+// ============================================================
+// 15. 3D CARD PHYSICS — Spring-Based Rigid Body
+// ============================================================
+let cardPhysics=null;
+
+function initCardPhysics(){
+  if(cardPhysics)cardPhysics.destroy();
+
+  const stage=document.getElementById('card-stage');
+  const card=document.getElementById('card-3d');
+  const sheen=document.getElementById('card-sheen');
+  const face=document.getElementById('card-face');
+
+  // Physics state
+  let x=0,y=0,vx=0,vy=0;
+  let rx=0,ry=0,rz=0,vrx=0,vry=0,vrz=0;
+  const spring=.04,damp=.92;
+  let dragging=false,dragOffX=0,dragOffY=0,prevMX=0,prevMY=0,velX=0,velY=0;
+  let windForce=0;
+  let rafId;
+
+  function applyTransform(){
+    card.style.transform=`translate3d(${x}px,${y}px,0) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+    // Dynamic shadow
+    const sx=x*.08+ry*.4;
+    const sy=Math.abs(y)*.06+25+Math.abs(rx)*.3;
+    const blur=40+Math.abs(rx)+Math.abs(ry);
+    face.style.boxShadow=`${sx}px ${sy}px ${blur}px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.02)`;
+    // Metallic sheen — shifts with rotation
+    const angle=ry*2;
+    sheen.style.background=`linear-gradient(${135+angle}deg, rgba(255,255,255,0) 0%, rgba(255,255,255,${.02+Math.abs(ry)*.001}) 40%, rgba(255,255,255,${.04+Math.abs(ry)*.002}) 50%, rgba(255,255,255,${.02+Math.abs(ry)*.001}) 60%, rgba(255,255,255,0) 100%)`;
+  }
+
+  function tick(){
+    if(!dragging){
+      // Spring back to center
+      vx-=x*spring;vy-=y*spring;
+      vrx-=rx*spring;vry-=ry*spring;vrz-=rz*spring;
+      // Wind force
+      if(windForce>0){
+        const t=performance.now()*.001;
+        vry+=Math.sin(t*1.3)*windForce*.00015;
+        vrx+=Math.cos(t*.9)*windForce*.0001;
+        vrz+=Math.sin(t*1.7)*windForce*.00005;
+      }
+      vx*=damp;vy*=damp;vrx*=damp;vry*=damp;vrz*=damp;
+    }
+    x+=vx;y+=vy;rx+=vrx;ry+=vry;rz+=vrz;
+    rx=Math.max(-40,Math.min(40,rx));
+    ry=Math.max(-40,Math.min(40,ry));
+    rz=Math.max(-15,Math.min(15,rz));
+    applyTransform();
+    rafId=requestAnimationFrame(tick);
+  }
+  tick();
+
+  // Mouse drag
+  function onStart(mx,my){
+    dragging=true;
+    const rect=card.getBoundingClientRect();
+    dragOffX=mx-(rect.left+rect.width/2)-x;
+    dragOffY=my-(rect.top+rect.height/2)-y;
+    prevMX=mx;prevMY=my;
+    card.style.transition='none';
+  }
+  function onMove(mx,my){
+    if(!dragging)return;
+    velX=mx-prevMX;velY=my-prevMY;
+    prevMX=mx;prevMY=my;
+    x=mx-dragOffX-(stage.offsetWidth/2);
+    y=my-dragOffY-(stage.offsetHeight/2);
+    // Tilt based on velocity
+    vry+=velX*.15;vrx-=velY*.15;
+    vx=velX*.3;vy=velY*.3;
+  }
+  function onEnd(){
+    if(!dragging)return;
+    dragging=false;
+    // Keep momentum
+    vx=velX*2;vy=velY*2;
+    vry+=velX*3;vrx-=velY*3;
+    card.style.transition='';
+  }
+
+  card.addEventListener('mousedown',e=>{e.preventDefault();onStart(e.clientX,e.clientY)});
+  window.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
+  window.addEventListener('mouseup',onEnd);
+  card.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];onStart(t.clientX,t.clientY)},{passive:false});
+  window.addEventListener('touchmove',e=>{if(dragging){const t=e.touches[0];onMove(t.clientX,t.clientY)}},{passive:false});
+  window.addEventListener('touchend',onEnd);
+
+  // Wind slider
+  const slider=document.getElementById('wind-slider');
+  const val=document.getElementById('wind-val');
+  slider.value=0;val.textContent='0';
+  slider.oninput=()=>{windForce=parseFloat(slider.value);val.textContent=slider.value};
+
+  // Hover parallax when not dragging
+  card.addEventListener('mousemove',e=>{
+    if(dragging)return;
+    const rect=card.getBoundingClientRect();
+    const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+    const dx=(e.clientX-cx)/rect.width,dy=(e.clientY-cy)/rect.height;
+    vry+=(dx*8-vry)*.08;vrx+=(-dy*5-vrx)*.08;
+  });
+  card.addEventListener('mouseleave',()=>{
+    if(!dragging){/* spring back handled by tick */}
+  });
+
+  cardPhysics={
+    destroy(){cancelAnimationFrame(rafId);window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onEnd)}
+  };
+}
+
+
+
+// ============================================================
+// 16. UTILITIES
+// ============================================================
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// ============================================================
+// 17. INITIAL STATE
+// ============================================================
+updateCharCount();
+</script>
 </body>
 </html>
