@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PainForge - GLM-5.1 MVP Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Top Bar */
+        .topbar {
+            background: #0a0a0a;
+            border-bottom: 1px solid #222;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: #50c8c8;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        /* Main Layout */
+        .container {
+            display: flex;
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #0a0a0a;
+            border-right: 1px solid #222;
+            padding: 1.5rem;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-item {
+            padding: 0.75rem 1rem;
+            color: #999;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background: #111;
+            color: #e0e0e0;
+            border-color: #333;
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            max-width: 900px;
+        }
+
+        .main h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Input Card */
+        .input-card {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-card textarea {
+            width: 100%;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 1rem;
+            color: #e0e0e0;
+            font-size: 1rem;
+            min-height: 150px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .input-card textarea:focus {
+            outline: none;
+            border-color: #50c8c8;
+        }
+
+        .input-card textarea::placeholder {
+            color: #555;
+        }
+
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .mic-btn {
+            background: #111;
+            border: 1px solid #333;
+            color: #888;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .mic-btn:hover {
+            border-color: #50c8c8;
+            color: #50c8c8;
+        }
+
+        .mic-btn.recording {
+            border-color: #ff4444;
+            color: #ff4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .forge-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid #50c8c8;
+            color: #50c8c8;
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .forge-btn:hover {
+            background: #50c8c8;
+            color: #0a0a0a;
+        }
+
+        .forge-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Thinking Section */
+        .thinking-section {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .thinking-section.active {
+            display: block;
+        }
+
+        .thinking-header {
+            color: #50c8c8;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .thinking-step {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            color: #888;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #1a1a1a;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+
+        .thinking-step::before {
+            content: "→ ";
+            color: #50c8c8;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .result-card {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .result-card:active {
+            cursor: grabbing;
+        }
+
+        .result-card.dragging {
+            position: fixed;
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .result-card h3 {
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-card h3::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #50c8c8;
+            border-radius: 50%;
+        }
+
+        .result-card p, .result-card li {
+            color: #999;
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .result-card ul {
+            list-style: none;
+            padding-left: 1rem;
+        }
+
+        .result-card li {
+            padding: 0.3rem 0;
+        }
+
+        .result-card li::before {
+            content: "•";
+            color: #50c8c8;
+            margin-right: 0.5rem;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            background: #111;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-header span {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            border-color: #50c8c8;
+            color: #50c8c8;
+        }
+
+        .code-block pre {
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            color: #ccc;
+            max-height: 400px;
+            margin: 0;
+        }
+
+        /* Fan Control */
+        .fan-control {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 1rem;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .fan-control.active {
+            display: flex;
+        }
+
+        .fan-control label {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+
+        .fan-slider {
+            -webkit-appearance: none;
+            width: 150px;
+            height: 6px;
+            background: #222;
+            border-radius: 3px;
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+
+        .fan-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #50c8c8;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #444;
+            font-size: 0.8rem;
+            margin-left: 280px;
+        }
+
+        .footer a {
+            color: #50c8c8;
+            text-decoration: none;
+        }
+
+        /* Download Button */
+        .download-btn {
+            display: block;
+            width: 100%;
+            background: #50c8c8;
+            border: none;
+            color: #0a0a0a;
+            padding: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #6ee0e0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main, .footer {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="logo">Pain<span>Forge</span></div>
+        <div class="subtitle">GLM-5.1 Agentic MVP Builder • GMI Cloud</div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h3>Quick Indian Pain Examples</h3>
+            <div class="sidebar-item" data-pain="freelancer">Freelancers chasing UPI / PayPal payments</div>
+            <div class="sidebar-item" data-pain="gst">Indian startups handling GST compliance</div>
+            <div class="sidebar-item" data-pain="pitch">Founders writing pitch decks in English + Hindi</div>
+            <div class="sidebar-item" data-pain="kirana">Kirana store inventory & ordering</div>
+            <div class="sidebar-item" data-pain="clinic">Clinic appointment booking system</div>
+            <div class="sidebar-item" data-pain="delivery">Local delivery tracking for small businesses</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main">
+            <h1>Describe the real pain</h1>
+
+            <!-- Input -->
+            <div class="input-card">
+                <textarea id="painInput" placeholder="Indian freelancers waste hours chasing payments across UPI, WhatsApp, and email with no single source of truth..."></textarea>
+                <div class="btn-row">
+                    <button class="mic-btn" id="micBtn">🎤 Hold to speak</button>
+                    <button class="forge-btn" id="forgeBtn">FORGE MVP</button>
+                </div>
+            </div>
+
+            <!-- Thinking -->
+            <div class="thinking-section" id="thinkingSection">
+                <div class="thinking-header">
+                    <span>●</span>
+                    <span>GLM-5.1 is thinking through your MVP...</span>
+                </div>
+                <div id="thinkingSteps"></div>
+            </div>
+
+            <!-- Results -->
+            <div class="results-section" id="resultsSection">
+                <!-- Problem -->
+                <div class="result-card" id="problemCard">
+                    <h3>Problem Summary</h3>
+                    <p id="problemText"></p>
+                </div>
+
+                <!-- Users & Features -->
+                <div class="result-card" id="usersCard">
+                    <h3>Target Users & Core Features</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <h4 style="color: #666; font-size: 0.8rem; margin-bottom: 0.5rem;">WHO</h4>
+                            <ul id="usersList"></ul>
+                        </div>
+                        <div>
+                            <h4 style="color: #666; font-size: 0.8rem; margin-bottom: 0.5rem;">WHAT</h4>
+                            <ul id="featuresList"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code -->
+                <div class="result-card" id="codeCard">
+                    <h3>Generated Code</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span id="codeFilename">app.py</span>
+                            <button class="copy-btn" id="copyBtn">Copy</button>
+                        </div>
+                        <pre id="codeContent"></pre>
+                    </div>
+                </div>
+
+                <!-- Deploy -->
+                <div class="result-card" id="deployCard">
+                    <h3>Deploy to GMI Cloud</h3>
+                    <p id="deployText"></p>
+                </div>
+
+                <!-- Download -->
+                <button class="download-btn" id="downloadBtn">Download Complete MVP</button>
+            </div>
+        </div>
+
+        <!-- Fan Control -->
+        <div class="fan-control" id="fanControl">
+            <label>Force</label>
+            <input type="range" class="fan-slider" id="fanSlider" min="0" max="100" value="0">
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Built live at GMIxGLM Hackathon Singapore • Powered by GLM-5.1 on GMI Cloud via OpenCode • From India 🇮🇳
+    </div>
+
+    <script>
+        // Config
+        const API_URL = 'https://api.gmi-serving.com/v1/chat/completions';
+        const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBkMWMzYTJiLWZiMmEtNDNhOS04MGVlLWEzNWNlZTRlYjIyNiIsInNjb2BlIjoiaWVfbW9kZWwiLCJjbGllbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9.EEEh20kvdGvMExxJ9cV9-DShA-1rRPTIULLEyUAhORw';
+        const MODEL = 'zai-org/GLM-5.1-FP8';
+
+        // DOM Elements
+        const painInput = document.getElementById('painInput');
+        const micBtn = document.getElementById('micBtn');
+        const forgeBtn = document.getElementById('forgeBtn');
+        const thinkingSection = document.getElementById('thinkingSection');
+        const thinkingSteps = document.getElementById('thinkingSteps');
+        const resultsSection = document.getElementById('resultsSection');
+        const fanControl = document.getElementById('fanControl');
+        const fanSlider = document.getElementById('fanSlider');
+
+        // State
+        let mvpData = null;
+        let recognition = null;
+        let isRecording = false;
+        let dragState = { isDragging: false, startX: 0, startY: 0, card: null, offsetX: 0, offsetY: 0, velX: 0, velY: 0 };
+        let fanForce = { x: 0, y: 0, active: false };
+
+        // Pain templates
+        const painTemplates = {
+            freelancer: 'Indian freelancers struggle to track payments across UPI, WhatsApp, and email. They manually chase clients and have no centralized invoice system. Build a simple tool with UPI QR codes and payment reminders.',
+            gst: 'Indian startups spend days doing GST compliance manually. Filing returns, reconciling invoices, and tracking deadlines is error-prone. Create an automated GST compliance tool.',
+            pitch: 'Indian founders need to create pitch decks quickly in multiple languages (English + Hindi) for different investors. Build a tool that generates professional pitch decks from key points.',
+            kirana: 'A local kirana store wants to manage inventory and take WhatsApp orders for 30-minute delivery. Staff need a simple interface to track stock and process orders.',
+            clinic: 'A clinic needs appointment booking with SMS/WhatsApp reminders. Doctors want to see their daily schedule and patients need easy online booking.',
+            delivery: 'Small local delivery business tracks packages via WhatsApp and phone calls. Build a real-time tracking system for drivers and customers.'
+        };
+
+        // Sidebar clicks
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const key = item.dataset.pain;
+                if (painTemplates[key]) {
+                    painInput.value = painTemplates[key];
+                }
+            });
+        });
+
+        // Voice input
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            micBtn.addEventListener('mousedown', () => {
+                isRecording = true;
+                micBtn.classList.add('recording');
+                micBtn.textContent = '● Recording...';
+                recognition.start();
+            });
+
+            micBtn.addEventListener('mouseup', () => {
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                micBtn.textContent = '🎤 Hold to speak';
+                recognition.stop();
+            });
+
+            micBtn.addEventListener('mouseleave', () => {
+                if (isRecording) {
+                    isRecording = false;
+                    micBtn.classList.remove('recording');
+                    micBtn.textContent = '🎤 Hold to speak';
+                    recognition.stop();
+                }
+            });
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                painInput.value = transcript;
+            };
+        } else {
+            micBtn.textContent = 'Voice not supported';
+            micBtn.style.opacity = '0.5';
+        }
+
+        // Forge MVP
+        forgeBtn.addEventListener('click', async () => {
+            const pain = painInput.value.trim();
+            if (!pain) {
+                alert('Please describe your pain point');
+                return;
+            }
+
+            // Reset
+            forgeBtn.disabled = true;
+            forgeBtn.textContent = 'Thinking...';
+            thinkingSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            thinkingSteps.innerHTML = '';
+            fanControl.classList.remove('active');
+
+            // Thinking steps
+            const thinkingTexts = [
+                'Analyzing problem context...',
+                'Identifying target users and pain points...',
+                'Designing MVP architecture...',
+                'Selecting tech stack for rapid deployment...',
+                'Generating production-ready code...',
+                'Adding setup instructions and deploy guide...'
+            ];
+
+            for (let i = 0; i < thinkingTexts.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 600));
+                const step = document.createElement('div');
+                step.className = 'thinking-step';
+                step.textContent = thinkingTexts[i];
+                thinkingSteps.appendChild(step);
+            }
+
+            // Call API
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are an elite startup CTO. Transform ANY pain point into a complete MVP blueprint.
+
+Output STRICT JSON only, no markdown:
+{
+    "problem_summary": "2 sentence description",
+    "target_users": ["user1", "user2"],
+    "core_features": ["feature1", "feature2", "feature3"],
+    "tech_stack": {"frontend": "tech", "backend": "tech", "database": "tech", "deployment": "tech"},
+    "mvp_code": {"app.py": "FULL runnable python code with Streamlit, include all imports, error handling, and professional UI"},
+    "setup_instructions": ["step1", "step2"],
+    "deployment_guide": "how to deploy",
+    "estimated_cost": "₹X/month",
+    "time_to_market": "X days"
+}
+
+Include COMPLETE working code. Focus on Indian market: UPI payments, WhatsApp integration.`
+                            },
+                            {
+                                role: 'user',
+                                content: pain
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 8192,
+                        thinking: { type: 'adaptive' }
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API Error');
+                }
+
+                let content = data.choices[0].message.content;
+                
+                // Parse JSON
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    mvpData = JSON.parse(jsonMatch[0]);
+                    displayResults();
+                } else {
+                    throw new Error('Could not parse response');
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('Error: ' + error.message);
+            }
+
+            forgeBtn.disabled = false;
+            forgeBtn.textContent = 'FORGE MVP';
+        });
+
+        // Display results
+        function displayResults() {
+            thinkingSection.classList.remove('active');
+            resultsSection.classList.add('active');
+            fanControl.classList.add('active');
+
+            document.getElementById('problemText').textContent = mvpData.problem_summary || '';
+
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = '';
+            (mvpData.target_users || []).forEach(user => {
+                const li = document.createElement('li');
+                li.textContent = user;
+                usersList.appendChild(li);
+            });
+
+            const featuresList = document.getElementById('featuresList');
+            featuresList.innerHTML = '';
+            (mvpData.core_features || []).forEach(feature => {
+                const li = document.createElement('li');
+                li.textContent = feature;
+                featuresList.appendChild(li);
+            });
+
+            const codeFiles = Object.entries(mvpData.mvp_code || {});
+            const [filename, code] = codeFiles[0] || ['app.py', '# No code generated'];
+
+            document.getElementById('codeFilename').textContent = filename;
+            document.getElementById('codeContent').textContent = code;
+
+            document.getElementById('deployText').textContent = 
+                `Setup: ${(mvpData.setup_instructions || []).join('. ')}. \n\nDeploy: ${mvpData.deployment_guide || 'Follow standard deployment process.'}`;
+        }
+
+        // Copy code
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const code = document.getElementById('codeContent').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        });
+
+        // Download
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(mvpData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mvp_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Drag physics
+        document.querySelectorAll('.result-card').forEach(card => {
+            card.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button') || e.target.closest('.code-block')) return;
+                
+                dragState.isDragging = true;
+                dragState.card = card;
+                dragState.startX = e.clientX;
+                dragState.startY = e.clientY;
+                const rect = card.getBoundingClientRect();
+                dragState.offsetX = e.clientX - rect.left;
+                dragState.offsetY = e.clientY - rect.top;
+                dragState.velX = 0;
+                dragState.velY = 0;
+                card.classList.add('dragging');
+                card.style.left = rect.left + 'px';
+                card.style.top = rect.top + 'px';
+                card.style.width = rect.width + 'px';
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!dragState.isDragging) return;
+            
+            const dx = e.clientX - dragState.startX;
+            const dy = e.clientY - dragState.startY;
+            
+            dragState.velX = dx * 0.3 + dragState.velX * 0.7;
+            dragState.velY = dy * 0.3 + dragState.velY * 0.7;
+            
+            const rect = dragState.card.getBoundingClientRect();
+            dragState.card.style.left = (e.clientX - dragState.offsetX) + 'px';
+            dragState.card.style.top = (e.clientY - dragState.offsetY) + 'px';
+            
+            dragState.startX = e.clientX;
+            dragState.startY = e.clientY;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (dragState.isDragging) {
+                dragState.isDragging = false;
+                dragState.card.classList.remove('dragging');
+                dragState.card.style.left = '';
+                dragState.card.style.top = '';
+                dragState.card.style.width = '';
+                
+                // Apply momentum
+                applyMomentum();
+            }
+        });
+
+        function applyMomentum() {
+            if (Math.abs(dragState.velX) < 1 && Math.abs(dragState.velY) < 1) return;
+            
+            const card = dragState.card;
+            const friction = 0.95;
+            
+            function animate() {
+                if (Math.abs(dragState.velX) < 0.5 && Math.abs(dragState.velY) < 0.5) return;
+                
+                dragState.velX *= friction;
+                dragState.velY *= friction;
+                
+                card.style.transform = `translate(${dragState.velX}px, ${dragState.velY}px)`;
+                
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+            
+            setTimeout(() => {
+                card.style.transform = '';
+            }, 1000);
+        }
+
+        // Fan force
+        fanSlider.addEventListener('input', () => {
+            const val = fanSlider.value / 100;
+            fanForce.x = (Math.random() - 0.5) * val * 20;
+            fanForce.y = -val * 30;
+        });
+
+        // Animate floating cards with fan
+        function animateCards() {
+            if (fanSlider.value > 0) {
+                document.querySelectorAll('.result-card').forEach(card => {
+                    const current = card.style.transform || 'translate(0, 0)';
+                    const match = current.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+                    let x = match ? parseFloat(match[1]) : 0;
+                    let y = match ? parseFloat(match[2]) : 0;
+                    
+                    x += fanForce.x * 0.1 + (Math.random() - 0.5) * 2;
+                    y += fanForce.y * 0.1 + Math.random() * 2;
+                    
+                    // Bounds
+                    x = Math.max(-50, Math.min(50, x));
+                    y = Math.max(-20, Math.min(20, y));
+                    
+                    card.style.transform = `translate(${x}px, ${y}px)`;
+                });
+            }
+            requestAnimationFrame(animateCards);
+        }
+        animateCards();
+    </script>
+</body>
+</html>
