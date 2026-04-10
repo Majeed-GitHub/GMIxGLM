@@ -14,7 +14,7 @@ from datetime import datetime
 # Configuration
 GMI_BASE_URL = "https://api.gmi-serving.com/v1"
 GMI_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRiZDcwYWM2LWYyZTItNGNmYy1iNmQ3LTRiMGE1ZTM5N2E2ZSIsInNjb3BlIjoiaWVfbW9kZWwiLCJjbGllbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9.fP705Pn7n-uX4SXM44RUJQpJv-kU8GVaMf6c8p8hyxs"
-MODEL_NAME = "glm-5.1"
+MODEL_NAME = "zai-org/GLM-5.1-FP8"  # Correct model name for GMI Cloud
 
 # System prompt for MVP Builder Agent
 MVP_BUILDER_PROMPT = """You are an elite startup CTO and full-stack developer with 15+ years of experience. 
@@ -426,7 +426,12 @@ Or: "College students in tier-2 cities need affordable coding tutoring, but Zoom
             else:
                 st.error("Failed to parse MVP response. Please try again.")
         else:
-            st.error(f"API Error: {result.get('error', 'Unknown error')}")
+            error_msg = result.get('error', 'Unknown error')
+            if 'insufficient balance' in error_msg.lower() or '402' in str(error_msg):
+                st.error("⚠️ **Insufficient API Credits** - Please add credits to your GMI Cloud account to use GLM-5.1")
+                st.info("💡 **Hackathon Solution:** Visit the GMI Cloud booth to get free credits for the hackathon!")
+            else:
+                st.error(f"API Error: {error_msg}")
     
     # Display results
     if st.session_state.get('mvp_data'):
