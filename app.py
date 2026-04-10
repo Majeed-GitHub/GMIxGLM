@@ -34,11 +34,8 @@ MODEL_NAME = "zai-org/GLM-5.1-FP8"
 MVP_BUILDER_PROMPT = """You are an elite startup CTO and full-stack developer with 15+ years of experience. 
 Transform ANY pain point into a complete, deployable MVP in seconds.
 
-CORE PRINCIPLES:
-1. Speed: Ship in minutes, not months
-2. Practicality: Real code that works, not pseudo-code
-3. Indian Market Focus: UPI payments, WhatsApp integration, regional language support
-4. Startup-Ready: Includes auth, database, API endpoints, deployment instructions
+CRITICAL: Use chain-of-thought reasoning to break down the problem step by step.
+Think through: 1) Who has this problem, 2) What exactly do they need, 3) What's the simplest solution, 4) What tech stack, 5) Generate working code.
 
 OUTPUT FORMAT (Strict JSON):
 {
@@ -46,7 +43,7 @@ OUTPUT FORMAT (Strict JSON):
     "target_users": ["User persona 1", "User persona 2"],
     "core_features": ["Feature 1", "Feature 2", "Feature 3"],
     "tech_stack": {"frontend": "...", "backend": "...", "database": "...", "deployment": "..."},
-    "mvp_code": {"filename1": "full code content...", "filename2": "full code content..."},
+    "mvp_code": {"app.py": "full python code...", "requirements.txt": "dependencies..."},
     "setup_instructions": ["Step 1...", "Step 2..."],
     "deployment_guide": "How to deploy on GMI Cloud",
     "estimated_cost": "₹X/month",
@@ -56,22 +53,19 @@ OUTPUT FORMAT (Strict JSON):
 CRITICAL INSTRUCTIONS:
 - Output valid JSON only, no markdown code blocks
 - Include COMPLETE, RUNNABLE code for all files
-- Use popular frameworks: React/Next.js, Node.js/Python FastAPI, PostgreSQL/Supabase
+- Use Python Streamlit or React/Next.js for fast prototyping
 - Include error handling, loading states, API routes
-- Add comments explaining complex logic
 - Make it visually impressive for demos
 
 Generate the complete MVP blueprint now."""
 
 # ============================================
-# CUSTOM CSS - Premium SaaS Design
+# CUSTOM CSS
 # ============================================
 st.markdown("""
 <style>
-    /* ===== FONTS ===== */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     
-    /* ===== BASE ===== */
     .stApp {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         background: linear-gradient(135deg, #030014 0%, #0a0a1f 50%, #1a0a2e 100%);
@@ -79,40 +73,17 @@ st.markdown("""
         min-height: 100vh;
     }
     
-    /* ===== SCROLLBAR ===== */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #0a0a1f; }
     ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 4px; }
     
-    /* ===== HERO SECTION ===== */
     .hero {
         text-align: center;
-        padding: 4rem 2rem;
-        background: linear-gradient(135deg, 
-            rgba(99, 102, 241, 0.15) 0%, 
-            rgba(139, 92, 246, 0.1) 50%,
-            rgba(168, 85, 247, 0.05) 100%);
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
         border-radius: 32px;
-        margin-bottom: 3rem;
+        margin-bottom: 2rem;
         border: 1px solid rgba(99, 102, 241, 0.2);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .hero::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
-        animation: pulse 8s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.5; }
-        50% { transform: scale(1.1); opacity: 0.8; }
     }
     
     .hero-badge {
@@ -122,283 +93,152 @@ st.markdown("""
         border-radius: 100px;
         font-size: 0.85rem;
         font-weight: 600;
-        margin-bottom: 1.5rem;
-        letter-spacing: 0.5px;
+        margin-bottom: 1rem;
     }
     
     .hero-title {
-        font-size: 4.5rem;
+        font-size: 4rem;
         font-weight: 900;
         background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #818cf8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        background-clip: text;
         margin-bottom: 1rem;
-        line-height: 1.1;
     }
     
     .hero-subtitle {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         color: #94a3b8;
         font-weight: 300;
-        max-width: 600px;
-        margin: 0 auto;
     }
     
-    .hero-tech {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        margin-top: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .tech-tag {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        color: #94a3b8;
-    }
-    
-    .tech-tag strong {
-        color: #6366f1;
-    }
-    
-    /* ===== CARDS ===== */
     .card {
-        background: linear-gradient(145deg, 
-            rgba(30, 30, 50, 0.8) 0%, 
-            rgba(20, 20, 40, 0.9) 100%);
+        background: linear-gradient(145deg, rgba(30, 30, 50, 0.8) 0%, rgba(20, 20, 40, 0.9) 100%);
         border: 1px solid rgba(99, 102, 241, 0.15);
-        border-radius: 24px;
-        padding: 2rem;
+        border-radius: 20px;
+        padding: 1.5rem;
         backdrop-filter: blur(20px);
-        transition: all 0.3s ease;
-    }
-    
-    .card:hover {
-        border-color: rgba(99, 102, 241, 0.3);
-        transform: translateY(-2px);
     }
     
     .card-header {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        gap: 1rem;
+        margin-bottom: 1rem;
     }
     
     .card-icon {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
         background: linear-gradient(135deg, #6366f1, #8b5cf6);
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
     
-    .card-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #fff;
-    }
-    
-    .card-subtitle {
-        font-size: 0.85rem;
-        color: #64748b;
-    }
-    
-    /* ===== SIDEBAR ===== */
-    .sidebar .stButton > button {
-        width: 100%;
-        background: rgba(99, 102, 241, 0.1);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        color: #a5b4fc;
-        padding: 0.75rem 1rem;
-        border-radius: 12px;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-        text-align: left;
-    }
-    
-    .sidebar .stButton > button:hover {
-        background: rgba(99, 102, 241, 0.2);
-        border-color: #6366f1;
-        color: #fff;
-    }
-    
-    /* ===== INPUTS ===== */
     .stTextArea > div > div > textarea {
         background: rgba(15, 23, 42, 0.8) !important;
         border: 2px solid rgba(99, 102, 241, 0.3) !important;
         border-radius: 16px !important;
         color: #fff !important;
-        font-size: 1.1rem !important;
-        padding: 1.5rem !important;
-        min-height: 180px !important;
-        transition: all 0.3s ease !important;
+        font-size: 1rem !important;
+        padding: 1.25rem !important;
+        min-height: 160px !important;
     }
     
-    .stTextArea > div > div > textarea:focus {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), 0 0 30px rgba(99, 102, 241, 0.2) !important;
-    }
-    
-    /* ===== PRIMARY BUTTON ===== */
     .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         color: white;
         border: none;
-        padding: 1.25rem 3rem;
-        font-size: 1.2rem;
+        padding: 1.1rem 3rem;
+        font-size: 1.1rem;
         font-weight: 700;
-        border-radius: 16px;
+        border-radius: 14px;
         transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stButton > button[kind="primary"]::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s ease;
-    }
-    
-    .stButton > button[kind="primary"]:hover::before {
-        left: 100%;
     }
     
     .stButton > button[kind="primary"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 20px 40px rgba(99, 102, 241, 0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
     }
     
-    /* ===== STATS ===== */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin: 2rem 0;
+    .thinking-step {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+        border-left: 4px solid #6366f1;
+        padding: 1rem 1.5rem;
+        margin: 0.75rem 0;
+        border-radius: 0 12px 12px 0;
+        color: #cbd5e1;
+    }
+    
+    .thinking-step-number {
+        display: inline-block;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 28px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        margin-right: 0.75rem;
     }
     
     .stat-card {
-        background: linear-gradient(135deg, 
-            rgba(99, 102, 241, 0.15) 0%, 
-            rgba(139, 92, 246, 0.1) 100%);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
         border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: 20px;
-        padding: 1.5rem;
+        border-radius: 16px;
+        padding: 1.25rem;
         text-align: center;
-        transition: all 0.3s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(99, 102, 241, 0.4);
-    }
-    
-    .stat-icon {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
     }
     
     .stat-value {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 800;
         background: linear-gradient(135deg, #6366f1, #a855f7);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        background-clip: text;
     }
     
-    .stat-label {
-        font-size: 0.85rem;
-        color: #64748b;
-        margin-top: 0.25rem;
-    }
-    
-    /* ===== FEATURE TAGS ===== */
     .feature-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: linear-gradient(135deg, 
-            rgba(99, 102, 241, 0.2) 0%, 
-            rgba(139, 92, 246, 0.15) 100%);
+        display: inline-block;
+        background: rgba(99, 102, 241, 0.15);
         border: 1px solid rgba(99, 102, 241, 0.3);
-        padding: 0.6rem 1.2rem;
+        padding: 0.5rem 1rem;
         border-radius: 100px;
-        margin: 0.3rem;
+        margin: 0.25rem;
         font-size: 0.9rem;
-        color: #a5b4fc;
-        transition: all 0.3s ease;
     }
     
-    .feature-tag:hover {
-        background: linear-gradient(135deg, 
-            rgba(99, 102, 241, 0.3) 0%, 
-            rgba(139, 92, 246, 0.25) 100%);
-        border-color: #6366f1;
-        transform: scale(1.05);
-    }
-    
-    /* ===== CODE BLOCK ===== */
     .code-block {
         background: #0d1117;
-        border-radius: 16px;
+        border-radius: 12px;
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .code-header {
         background: rgba(99, 102, 241, 0.1);
-        padding: 1rem 1.5rem;
+        padding: 0.75rem 1rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .code-filename {
-        font-family: 'Monaco', 'Menlo', monospace;
-        font-size: 0.9rem;
+        font-family: monospace;
+        font-size: 0.85rem;
         color: #a5b4fc;
     }
     
-    .code-lang {
-        background: rgba(99, 102, 241, 0.2);
-        padding: 0.25rem 0.75rem;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        color: #6366f1;
-        font-weight: 600;
-    }
-    
-    /* ===== TABS ===== */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0.5rem;
         background: rgba(30, 30, 50, 0.5);
         padding: 0.5rem;
-        border-radius: 16px;
+        border-radius: 14px;
     }
     
     .stTabs [data-baseweb="tab"] {
         background: transparent;
-        border-radius: 12px;
-        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        padding: 0.6rem 1.25rem;
         font-weight: 600;
         color: #64748b;
     }
@@ -408,69 +248,9 @@ st.markdown("""
         color: white !important;
     }
     
-    /* ===== PROGRESS ===== */
-    .stProgress > div > div > div {
-        background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
-        border-radius: 10px;
-    }
+    hr { border: none; height: 1px; background: rgba(99, 102, 241, 0.2); margin: 2rem 0; }
     
-    /* ===== SUCCESS ===== */
-    .success-banner {
-        background: linear-gradient(135deg, 
-            rgba(34, 197, 94, 0.2) 0%, 
-            rgba(16, 185, 129, 0.1) 100%);
-        border: 1px solid rgba(34, 197, 94, 0.3);
-        border-radius: 16px;
-        padding: 1.5rem;
-        text-align: center;
-        color: #4ade80;
-        font-weight: 600;
-        font-size: 1.1rem;
-    }
-    
-    /* ===== DOWNLOAD BUTTON ===== */
-    .download-btn {
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .download-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
-    }
-    
-    /* ===== DIVIDER ===== */
-    hr {
-        border: none;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
-        margin: 3rem 0;
-    }
-    
-    /* ===== FOOTER ===== */
-    .footer {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: #64748b;
-        font-size: 0.9rem;
-    }
-    
-    .footer a {
-        color: #6366f1;
-        text-decoration: none;
-    }
-    
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 768px) {
-        .hero-title { font-size: 2.5rem; }
-        .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    }
+    .footer { text-align: center; padding: 2rem; color: #64748b; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -510,86 +290,70 @@ def parse_mvp_json(content: str) -> dict:
         pass
     return None
 
+def extract_thinking_steps(content: str) -> list:
+    """Extract reasoning steps from GLM response"""
+    steps = []
+    lines = content.split('\n')
+    for line in lines[:30]:
+        line = line.strip()
+        if line and len(line) > 30:
+            steps.append(line[:150])
+    if not steps:
+        steps = ["Analyzing problem context...", "Identifying core requirements...", "Designing MVP architecture...", "Generating production code..."]
+    return steps[:6]
+
 def get_lang(filename: str) -> str:
     ext = os.path.splitext(filename)[1].lower()
     return {'.py': 'python', '.js': 'javascript', '.ts': 'typescript', 
-            '.jsx': 'jsx', '.tsx': 'tsx', '.html': 'html', '.css': 'css', 
-            '.json': 'json', '.sql': 'sql', '.sh': 'bash'}.get(ext, 'text')
+            '.jsx': 'jsx', '.html': 'html', '.css': 'css', 
+            '.json': 'json', '.sql': 'sql', '.sh': 'bash', '.md': 'markdown'}.get(ext, 'text')
 
 # ============================================
 # SIDEBAR
 # ============================================
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; padding: 1rem 0;">
-        <h2 style="font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🔥 PainForge</h2>
-        <p style="color: #64748b; font-size: 0.85rem;">GLM-5.1 MVP Generator</p>
+    <div style="text-align: center; padding: 0.5rem 0 1rem;">
+        <h2 style="font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            🔥 GLM PainForge
+        </h2>
+        <p style="color: #64748b; font-size: 0.8rem;">GLM-5.1 MVP Generator</p>
     </div>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
     st.markdown("### ⚡ Quick Examples")
-    st.markdown("*Click to load instantly*")
     
     examples = [
-        ("💼", "Freelancers chasing UPI payments"),
-        ("📊", "Indian startups GST compliance"),
-        ("🎯", "Founders writing pitch decks"),
-        ("📋", "Remote teams tracking tasks"),
-        ("🏪", "Kirana store inventory"),
+        ("💼", "Freelancer invoice + UPI tracking"),
+        ("📊", "GST compliance tool"),
+        ("🎯", "Multi-language pitch deck generator"),
+        ("📋", "Task management for remote teams"),
+        ("🏪", "Kirana inventory + WhatsApp orders"),
         ("🏥", "Clinic appointment booking"),
-        ("📚", "Coding bootcamp platform"),
-        ("🚗", "Local delivery tracking"),
     ]
     
-    selected_example = None
     for emoji, text in examples:
-        if st.button(f"{emoji} {text}", key=f"ex_{text}"):
-            selected_example = f"I am a {text.lower()} in India. I need a simple tool that..." if "in India" not in text.lower() else text
-            st.session_state['pain_input'] = selected_example
-    
-    st.markdown("---")
-    st.markdown("### 🛠️ Tech Stack")
-    st.markdown("""
-    - **Frontend:** React/Next.js
-    - **Backend:** Python FastAPI
-    - **Database:** PostgreSQL/Supabase
-    - **Deploy:** GMI Cloud GPU
-    """)
-    
-    st.markdown("---")
-    st.markdown("### 📊 Powered By")
-    st.markdown("""
-    <div style="display: flex; gap: 1rem; justify-content: center;">
-        <span class="tech-tag"><strong>GMI</strong> Cloud</span>
-        <span class="tech-tag"><strong>Z.ai</strong> GLM-5.1</span>
-    </div>
-    """, unsafe_allow_html=True)
+        if st.button(f"{emoji} {text}", key=f"ex_{text}", use_container_width=True):
+            st.session_state['pain_input'] = f"I am a {text.lower()}. I need a simple tool that helps me..."
 
 # ============================================
 # MAIN CONTENT
 # ============================================
 
-# Hero Section
+# Hero
 st.markdown("""
 <div class="hero">
     <div class="hero-badge">🏆 GMIxGLM Hackathon Singapore 2026</div>
     <h1 class="hero-title">🔥 GLM PainForge</h1>
     <p class="hero-subtitle">
-        Pain → Production MVP in seconds<br>
-        Powered by GLM-5.1 on GMI Cloud GPU
+        Pain → Production MVP in seconds • Powered by GLM-5.1 on GMI Cloud
     </p>
-    <div class="hero-tech">
-        <span class="tech-tag"><strong>GLM-5.1</strong> AI Model</span>
-        <span class="tech-tag"><strong>GMI</strong> Cloud GPU</span>
-        <span class="tech-tag"><strong>Z.ai</strong> Technology</span>
-        <span class="tech-tag"><strong>OpenCode</strong> Powered</span>
-    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Main Input Area
-col1, col2 = st.columns([2, 1])
+# Input Section
+col1, col2 = st.columns([3, 1])
 
 with col1:
     st.markdown("""
@@ -597,8 +361,8 @@ with col1:
         <div class="card-header">
             <div class="card-icon">💭</div>
             <div>
-                <div class="card-title">Describe Your Pain Point</div>
-                <div class="card-subtitle">Be specific about the problem you want to solve</div>
+                <div style="font-weight: 700; font-size: 1.1rem;">Describe Your Pain Point</div>
+                <div style="color: #64748b; font-size: 0.85rem;">Be specific about the problem you want to solve</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -609,7 +373,7 @@ with col1:
         value=default_text,
         placeholder="Example: Indian freelancers struggle with tracking client payments. They send invoices manually via WhatsApp, chase payments, and have no centralized system. Build a simple tool with UPI QR codes, payment tracking, and automated reminders...",
         label_visibility="collapsed",
-        height=180
+        height=160
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -618,14 +382,12 @@ with col2:
     <div class="card" style="height: 100%;">
         <div class="card-header">
             <div class="card-icon">⚡</div>
-            <div>
-                <div class="card-title">How It Works</div>
-            </div>
+            <div style="font-weight: 700;">How It Works</div>
         </div>
-        <ol style="color: #94a3b8; line-height: 2;">
-            <li>Describe your pain point</li>
+        <ol style="color: #94a3b8; line-height: 2; font-size: 0.9rem; padding-left: 1.2rem;">
+            <li>Describe your pain</li>
             <li>Click <strong style="color: #6366f1;">🚀 Forge MVP</strong></li>
-            <li>GLM-5.1 analyzes & builds</li>
+            <li>GLM-5.1 thinks & builds</li>
             <li>Download & deploy!</li>
         </ol>
     </div>
@@ -634,88 +396,130 @@ with col2:
 st.markdown("")
 
 # Forge Button
-col_btn = st.columns([1])
-with col_btn[0]:
-    forge_clicked = st.button("🚀 Forge the MVP", type="primary", use_container_width=True)
+forge_clicked = st.button("🚀 Forge the MVP", type="primary", use_container_width=True)
 
 # ============================================
-# GENERATION PROCESS
+# GENERATION
 # ============================================
 if forge_clicked and pain_point:
-    # Progress phase
+    # Initialize session state
+    st.session_state['thinking_steps'] = []
+    st.session_state['mvp_data'] = None
+    
+    # Show thinking progress
     progress_bar = st.progress(0)
-    status_text = st.empty()
+    status = st.empty()
     
-    phases = [
-        ("🔍 Analyzing your pain point...", 15),
-        ("🧠 GLM-5.1 is thinking deeply...", 40),
-        ("⚙️ Building MVP architecture...", 65),
-        ("💻 Generating production code...", 85),
-        ("✨ Finalizing your MVP...", 95),
-    ]
+    # Phase 1: Analyze
+    status.markdown("### 🔍 GLM-5.1 is analyzing your pain point...")
+    progress_bar.progress(15)
+    time.sleep(0.3)
     
-    for phase_text, progress in phases:
-        status_text.markdown(f"""
-        <div style="text-align: center; padding: 2rem;">
-            <h2 style="color: #fff; font-size: 1.5rem;">{phase_text}</h2>
-            <p style="color: #64748b;">Powered by GLM-5.1 on GMI Cloud</p>
-        </div>
-        """, unsafe_allow_html=True)
-        progress_bar.progress(progress)
-        time.sleep(0.5)
+    # Phase 2: Think
+    status.markdown("### 🧠 GLM-5.1 is thinking step-by-step...")
+    progress_bar.progress(30)
+    time.sleep(0.3)
     
     # Call API
     result = call_glm_api(pain_point)
     
     if result["success"]:
-        progress_bar.progress(100)
+        progress_bar.progress(60)
+        status.markdown("### ⚙️ GLM-5.1 is building the MVP...")
+        
+        # Extract thinking steps
+        thinking_steps = extract_thinking_steps(result["content"])
+        st.session_state['thinking_steps'] = thinking_steps
+        
+        # Parse MVP
         mvp_data = parse_mvp_json(result["content"])
         
         if mvp_data:
             st.session_state['mvp_data'] = mvp_data
-            st.markdown('<div class="success-banner">🎉 MVP Forged Successfully with GLM-5.1!</div>', unsafe_allow_html=True)
+            progress_bar.progress(100)
+            st.success("✅ **MVP Forged Successfully!**")
         else:
             st.error("Could not parse response. Please try again.")
     else:
         st.error(f"API Error: {result.get('error', 'Unknown error')}")
 
 # ============================================
-# RESULTS DISPLAY
+# THINKING STEPS (Expandable)
 # ============================================
-if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
+if st.session_state.get('thinking_steps'):
+    with st.expander("🧠 **View GLM-5.1 Thinking Process**", expanded=True):
+        st.markdown("""
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
+            Watch how GLM-5.1 breaks down your problem and designs the solution...
+        </p>
+        """, unsafe_allow_html=True)
+        
+        for i, step in enumerate(st.session_state['thinking_steps'], 1):
+            st.markdown(f"""
+            <div class="thinking-step">
+                <span class="thinking-step-number">{i}</span>
+                {step}
+            </div>
+            """, unsafe_allow_html=True)
+
+# ============================================
+# RESULTS
+# ============================================
+if st.session_state.get('mvp_data'):
     mvp = st.session_state['mvp_data']
     
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("---")
     st.markdown("## 🎯 Your MVP Blueprint")
     
     # Stats Row
-    st.markdown(f"""
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon">⏱️</div>
-            <div class="stat-value">{mvp.get('time_to_market', '3-5 days')}</div>
-            <div class="stat-label">Time to Market</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">💰</div>
-            <div class="stat-value">{mvp.get('estimated_cost', '₹2,000/mo')}</div>
-            <div class="stat-label">Est. Monthly Cost</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">⚡</div>
-            <div class="stat-value">{len(mvp.get('core_features', []))}</div>
-            <div class="stat-label">Core Features</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">🔥</div>
-            <div class="stat-value">GLM-5.1</div>
-            <div class="stat-label">AI Powered</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
     
-    # Details in Tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["📌 Problem & Users", "⚡ Features & Stack", "💻 Generated Code", "🚀 Deploy"])
+    with col1:
+        st.markdown(f"""
+        <div class="stat-card">
+            <div style="font-size: 1.5rem;">⏱️</div>
+            <div class="stat-value">{mvp.get('time_to_market', '3-5 days')}</div>
+            <div style="color: #64748b; font-size: 0.8rem;">Time to Market</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="stat-card">
+            <div style="font-size: 1.5rem;">💰</div>
+            <div class="stat-value">{mvp.get('estimated_cost', '₹2K/mo')}</div>
+            <div style="color: #64748b; font-size: 0.8rem;">Est. Cost</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        features = mvp.get('core_features', [])
+        st.markdown(f"""
+        <div class="stat-card">
+            <div style="font-size: 1.5rem;">⚡</div>
+            <div class="stat-value">{len(features)}</div>
+            <div style="color: #64748b; font-size: 0.8rem;">Features</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div class="stat-card">
+            <div style="font-size: 1.5rem;">🔥</div>
+            <div class="stat-value">GLM-5.1</div>
+            <div style="color: #64748b; font-size: 0.8rem;">AI Powered</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Tabs for details
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📌 Problem & Users",
+        "⚡ Features & Stack", 
+        "💻 Generated Code",
+        "🚀 Deploy Guide"
+    ])
     
     with tab1:
         col_prob, col_users = st.columns(2)
@@ -725,11 +529,11 @@ if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
             <div class="card">
                 <div class="card-header">
                     <div class="card-icon">📌</div>
-                    <div>
-                        <div class="card-title">Problem Summary</div>
-                    </div>
+                    <div style="font-weight: 700;">Problem Summary</div>
                 </div>
-                <p style="color: #cbd5e1; line-height: 1.8;">{mvp.get('problem_summary', 'N/A')}</p>
+                <p style="color: #cbd5e1; line-height: 1.7;">
+                    {mvp.get('problem_summary', 'N/A')}
+                </p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -738,9 +542,7 @@ if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
             <div class="card">
                 <div class="card-header">
                     <div class="card-icon">👥</div>
-                    <div>
-                        <div class="card-title">Target Users</div>
-                    </div>
+                    <div style="font-weight: 700;">Target Users</div>
                 </div>
             """, unsafe_allow_html=True)
             users = mvp.get('target_users', [])
@@ -754,9 +556,7 @@ if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
         <div class="card">
             <div class="card-header">
                 <div class="card-icon">⚡</div>
-                <div>
-                    <div class="card-title">Core Features</div>
-                </div>
+                <div style="font-weight: 700;">Core Features</div>
             </div>
         """, unsafe_allow_html=True)
         features = mvp.get('core_features', [])
@@ -768,30 +568,16 @@ if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
         
         # Tech Stack
         stack = mvp.get('tech_stack', {})
-        st.markdown(f"""
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">🎨</div>
-                <div class="stat-value" style="font-size: 1rem;">{stack.get('frontend', 'React')}</div>
-                <div class="stat-label">Frontend</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⚙️</div>
-                <div class="stat-value" style="font-size: 1rem;">{stack.get('backend', 'Node.js')}</div>
-                <div class="stat-label">Backend</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🗄️</div>
-                <div class="stat-value" style="font-size: 1rem;">{stack.get('database', 'PostgreSQL')}</div>
-                <div class="stat-label">Database</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">☁️</div>
-                <div class="stat-value" style="font-size: 1rem;">{stack.get('deployment', 'GMI Cloud')}</div>
-                <div class="stat-label">Deploy</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+        
+        with col_s1:
+            st.markdown(f"<div class='stat-card'><div style='color:#64748b;font-size:0.75rem;'>FRONTEND</div><div style='font-weight:600;color:#6366f1'>{stack.get('frontend', 'React')}</div></div>", unsafe_allow_html=True)
+        with col_s2:
+            st.markdown(f"<div class='stat-card'><div style='color:#64748b;font-size:0.75rem;'>BACKEND</div><div style='font-weight:600;color:#6366f1'>{stack.get('backend', 'Node.js')}</div></div>", unsafe_allow_html=True)
+        with col_s3:
+            st.markdown(f"<div class='stat-card'><div style='color:#64748b;font-size:0.75rem;'>DATABASE</div><div style='font-weight:600;color:#6366f1'>{stack.get('database', 'PostgreSQL')}</div></div>", unsafe_allow_html=True)
+        with col_s4:
+            st.markdown(f"<div class='stat-card'><div style='color:#64748b;font-size:0.75rem;'>DEPLOY</div><div style='font-weight:600;color:#6366f1'>{stack.get('deployment', 'GMI Cloud')}</div></div>", unsafe_allow_html=True)
     
     with tab3:
         mvp_code = mvp.get('mvp_code', {})
@@ -803,14 +589,12 @@ if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
                 with tabs_code[i]:
                     st.markdown(f"""
                     <div class="code-block">
-                        <div class="code-header">
-                            <span class="code-filename">📄 {filename}</span>
-                            <span class="code-lang">{get_lang(filename).upper()}</span>
-                        </div>
+                        <div class="code-header">📄 {filename}</div>
                     </div>
                     """, unsafe_allow_html=True)
-                    st.code(code, language=get_lang(filename), line_numbers=True)
-                    col_dl = st.columns([1, 3, 1])
+                    st.code(code, language='python', line_numbers=True)
+                    
+                    col_dl = st.columns([1, 2, 1])
                     with col_dl[1]:
                         st.download_button(
                             f"📥 Download {filename}",
@@ -820,20 +604,20 @@ if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
                             use_container_width=True
                         )
         else:
-            st.info("No code generated in this response.")
+            st.info("No code in this response.")
     
     with tab4:
-        st.markdown("""
+        st.markdown(f"""
         <div class="card">
             <div class="card-header">
                 <div class="card-icon">☁️</div>
-                <div>
-                    <div class="card-title">Deploy to GMI Cloud</div>
-                </div>
+                <div style="font-weight: 700;">Deploy to GMI Cloud</div>
             </div>
+            <p style="color: #cbd5e1; line-height: 1.7;">
+                {mvp.get('deployment_guide', 'Follow setup instructions below.')}
+            </p>
+        </div>
         """, unsafe_allow_html=True)
-        st.markdown(f"<p style='color: #cbd5e1; line-height: 1.8;'>{mvp.get('deployment_guide', 'Follow setup instructions below.')}</p>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
@@ -841,36 +625,31 @@ if 'mvp_data' in st.session_state and st.session_state['mvp_data']:
         <div class="card">
             <div class="card-header">
                 <div class="card-icon">🚀</div>
-                <div>
-                    <div class="card-title">Setup Instructions</div>
-                </div>
+                <div style="font-weight: 700;">Setup Instructions</div>
             </div>
         """, unsafe_allow_html=True)
         instructions = mvp.get('setup_instructions', [])
         for i, step in enumerate(instructions, 1):
             st.markdown(f"**{i}.** {step}")
         st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Download all
-        if mvp_code:
-            st.markdown("<br>", unsafe_allow_html=True)
-            all_code = json.dumps(mvp_code, indent=2)
-            st.download_button(
-                "📦 Download All Code",
-                all_code,
-                f"mvp_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                mime="application/json",
-                type="primary",
-                use_container_width=True
-            )
+    
+    # Big Download Button
+    st.markdown("<br>", unsafe_allow_html=True)
+    if mvp.get('mvp_code'):
+        all_code = json.dumps(mvp.get('mvp_code', {}), indent=2)
+        st.download_button(
+            "📦 Download All Code",
+            all_code,
+            f"mvp_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            type="primary",
+            use_container_width=True
+        )
 
-# ============================================
-# FOOTER
-# ============================================
+# Footer
 st.markdown("""
 <hr>
 <div class="footer">
-    <p>🔥 Built with <strong>GLM-5.1</strong> on <strong>GMI Cloud GPU</strong></p>
-    <p>🏆 GMIxGLM Hackathon Singapore 2026 | Powered by Z.ai | Built with OpenCode</p>
+    <p>🔥 Built with <strong>GLM-5.1</strong> on <strong>GMI Cloud GPU</strong> | GMIxGLM Hackathon Singapore 2026</p>
 </div>
 """, unsafe_allow_html=True)
