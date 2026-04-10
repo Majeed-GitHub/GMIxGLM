@@ -1,0 +1,50 @@
+==================================================
+🔴 GMI CLOUD API TEST - ERROR REPORT
+==================================================
+
+API ENDPOINT:
+https://api.gmi-serving.com/v1/chat/completions
+
+MODEL: zai-org/GLM-5.1-FP8
+
+API KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+==================================================
+REQUEST SENT:
+==================================================
+POST /v1/chat/completions
+Headers: Authorization: Bearer <token>
+         Content-Type: application/json
+Body: {"model": "zai-org/GLM-5.1-FP8", "messages": [...]}
+
+==================================================
+❌ ERROR RESPONSE:
+==================================================
+HTTP Status: 402 Payment Required
+
+{
+  "error": "Insufficient balance"
+}
+
+==================================================
+📍 ERROR LOCATION:
+The error appears in the API response body when 
+calling https://api.gmi-serving.com/v1/chat/completions
+
+==================================================
+✅ TESTING WITH OPENCODE:
+==================================================
+opencode configured with model: gmi/zai-org/GLM-5.1-FP8
+Models available: gmi/zai-org/GLM-5.1-FP8
+
+But API calls fail with 402 Insufficient Balance
+
+==================================================
+💡 SUGGESTED SOLUTION:
+Please add credits to API key or provide hackathon
+free credits to test GLM-5.1 model.
+
+==================================================
+Test Date: April 10, 2026
+Hackathon: GMIxGLM Singapore 2026
+==================================================

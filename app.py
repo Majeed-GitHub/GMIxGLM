@@ -13,7 +13,7 @@ from datetime import datetime
 
 # Configuration
 GMI_BASE_URL = "https://api.gmi-serving.com/v1"
-GMI_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRiZDcwYWM2LWYyZTItNGNmYy1iNmQ3LTRiMGE1ZTM5N2E2ZSIsInNjb3BlIjoiaWVfbW9kZWwiLCJjbGllbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9.fP705Pn7n-uX4SXM44RUJQpJv-kU8GVaMf6c8p8hyxs"
+GMI_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjBkMWMzYTJiLWZiMmEtNDNhOS04MGVlLWEzNWNlZTRlYjIyNiIsInNjb3BlIjoiaWVfbW9kZWwiLCJjbGllbnRJZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9.EEEh20kvdGvMExxJ9cV9-DShA-1rRPTIULLEyUAhORw"
 MODEL_NAME = "zai-org/GLM-5.1-FP8"  # Correct model name for GMI Cloud
 
 # System prompt for MVP Builder Agent
@@ -87,7 +87,8 @@ def call_glm_api(prompt: str, thinking_enabled: bool = True) -> dict:
         "model": MODEL_NAME,
         "messages": messages,
         "temperature": 0.7,
-        "max_tokens": 8192
+        "max_tokens": 8192,
+        "thinking": {"type": "adaptive"}
     }
     
     try:
